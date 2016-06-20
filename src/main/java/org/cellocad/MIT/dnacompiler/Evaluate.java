@@ -1,48 +1,51 @@
 package org.cellocad.MIT.dnacompiler;
+
 /**
  * Created by Bryan Der on 3/26/14.
  */
-
+import edu.emory.mathcs.backport.java.util.Arrays;
 import org.cellocad.MIT.dnacompiler.Gate.GateType;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 
-/***********************************************************************
-
- Synopsis    [ Compute out_rpu from in_rpu given the 4 transfer function parameters. ]
-
- ***********************************************************************/
-
+/**
+ * *********************************************************************
+ *
+ * Synopsis [ Compute out_rpu from in_rpu given the 4 transfer function
+ * parameters. ]
+ *
+ **********************************************************************
+ */
 public class Evaluate {
 
-
     /**
-     * The function evaluateCircuit calls other evaluate functions based on the circuit_score chose by user.
+     * The function evaluateCircuit calls other evaluate functions based on the
+     * circuit_score chose by user.
      *
-     * -circuit_score onoff_ratio
-     *      score = log(ON/OFF), where ON is the lowest ON in the truthtable, and OFF is the highest off in the truthtable
+     * -circuit_score onoff_ratio score = log(ON/OFF), where ON is the lowest ON
+     * in the truthtable, and OFF is the highest off in the truthtable
      *
-     * -circuit_score noise_margin
-     *      noise margin is computed from input RPU distance from low margin (if low) or high margin (if high)
-     *      score = average noise margin of all logic gates
-     *      used for NOR/NOT only, and cannot be used if there are input gates and no logic gates
+     * -circuit_score noise_margin noise margin is computed from input RPU
+     * distance from low margin (if low) or high margin (if high) score =
+     * average noise margin of all logic gates used for NOR/NOT only, and cannot
+     * be used if there are input gates and no logic gates
      *
-     * -circuit_score histogram
-     *      score = 1 - overlap penalty, where overlap is from the worst pair among ONs and OFFs in the truthtable
+     * -circuit_score histogram score = 1 - overlap penalty, where overlap is
+     * from the worst pair among ONs and OFFs in the truthtable
      *
      *
-     * Circuit is evaluated by evaluating each gate, so the same function calls appear
-     *      but with a Gate parameter instead of LogicCircuit parameter
+     * Circuit is evaluated by evaluating each gate, so the same function calls
+     * appear but with a Gate parameter instead of LogicCircuit parameter
      *
      */
-    public static void evaluateCircuit(LogicCircuit lc, GateLibrary gate_library, Args options){
+    public static void evaluateCircuit(LogicCircuit lc, GateLibrary gate_library, Args options) {
 
         refreshGateAttributes(lc, gate_library);
 
         //if sequential
-        if(options.get_circuit_type() == DNACompiler.CircuitType.sequential) {
+        if (options.get_circuit_type() == DNACompiler.CircuitType.sequential) {
 
             SequentialHelper.setInitialRPUs(lc, gate_library);
 
@@ -57,51 +60,46 @@ public class Evaluate {
 
             boolean converges = SequentialHelper.convergeRPUs(lc, gate_library, options, track_rpus);
 
-            if(!converges) {
+            if (!converges) {
 
                 lc.get_scores().set_onoff_ratio(0.0);
                 lc.get_scores().set_noise_margin_contract(false);
 
                 return;
             }
-        }
-
-
-        //if combinational
-        else if(options.get_circuit_type() == DNACompiler.CircuitType.combinational) {
+        } //if combinational
+        else if (options.get_circuit_type() == DNACompiler.CircuitType.combinational) {
             simulateRPU(lc, gate_library, options);
         }
 
-
-
         evaluateCircuitONOFFRatio(lc);
 
-        if(options.is_noise_margin()) {
+        if (options.is_noise_margin()) {
             evaluateCircuitNoiseMargin(lc, options);
         }
 
-        if(options.is_snr()) {
+        if (options.is_snr()) {
             evaluateCircuitSNR(lc, options);
         }
     }
 
-
     /**
      *
-     * To evaluate the ON/OFF ratio for a circuit, calculate the ON/OFF ratio for each output gate,
-     * and choose the worst score among the outputs (#outputs >= 1).
+     * To evaluate the ON/OFF ratio for a circuit, calculate the ON/OFF ratio
+     * for each output gate, and choose the worst score among the outputs
+     * (#outputs >= 1).
      *
      */
-    public static void evaluateCircuitONOFFRatio(LogicCircuit lc){
+    public static void evaluateCircuitONOFFRatio(LogicCircuit lc) {
 
         double worst_out = Double.MAX_VALUE;
 
-        for(int out=0; out<lc.get_output_gates().size(); ++out) {// if multiple outputs, average _scores
+        for (int out = 0; out < lc.get_output_gates().size(); ++out) {// if multiple outputs, average _scores
             Gate output = lc.get_output_gates().get(out);
             evaluateGateONOFFRatio(output);
 
             //if multiple outputs, circuit score = score of worst output
-            if(output.get_scores().get_onoff_ratio() < worst_out) {
+            if (output.get_scores().get_onoff_ratio() < worst_out) {
                 worst_out = output.get_scores().get_onoff_ratio();
             }
         }
@@ -119,7 +117,7 @@ public class Evaluate {
         //initialize to true. circuit will fail if any gate fails.
         lc.get_scores().set_noise_margin_contract(true);
 
-        if(options.is_noise_margin() == false) {
+        if (options.is_noise_margin() == false) {
             return;
         }
 
@@ -131,13 +129,11 @@ public class Evaluate {
             //'options' are passed in to read the _noise_margin boolean
             evaluateGateNoiseMargin(g, options);
 
-            if(g.get_scores().get_noise_margin() < min_noise_margin) {
+            if (g.get_scores().get_noise_margin() < min_noise_margin) {
                 min_noise_margin = g.get_scores().get_noise_margin();
             }
 
-
             //g.get_noise_margin() returns the min of the NML and NMH values (noise margin low, noise margin high)
-
             sum_noise_margin += g.get_scores().get_noise_margin();
             //sum_noise_margin += g.get_scores().get_noise_margin() * g.get_distance_to_input();
 
@@ -160,7 +156,6 @@ public class Evaluate {
         }
     }
 
-
     /**
      *
      * histogram
@@ -168,17 +163,15 @@ public class Evaluate {
      * Histogram overlap score worst-case = 0.0 and best-case = 1.0
      *
      */
-
-    public static void evaluateCircuitHistogramOverlap(LogicCircuit lc, GateLibrary gate_library, Args options){ // output gate _score (average)
+    public static void evaluateCircuitHistogramOverlap(LogicCircuit lc, GateLibrary gate_library, Args options) { // output gate _score (average)
 
         refreshGateAttributes(lc, gate_library);
 
         //if sequential
-        if(options.get_circuit_type() == DNACompiler.CircuitType.sequential) {
+        if (options.get_circuit_type() == DNACompiler.CircuitType.sequential) {
 
             //set initial
             SequentialHelper.setInitialHistogramRPUs(lc, gate_library);
-
 
             //track
             HashMap<String, ArrayList<ArrayList<double[]>>> track_rpus = new HashMap<>();
@@ -191,23 +184,18 @@ public class Evaluate {
 
             //converge
             SequentialHelper.convergeHistogramRPUs(lc, gate_library, options, track_rpus);
-        }
-
-
-        //if combinational
-        else if(options.get_circuit_type() == DNACompiler.CircuitType.combinational) {
+        } //if combinational
+        else if (options.get_circuit_type() == DNACompiler.CircuitType.combinational) {
             Evaluate.simulateHistogramRPU(lc, gate_library, options);
         }
 
-
-
         double worst_out = Double.MAX_VALUE;
 
-        for(int out=0; out<lc.get_output_gates().size(); ++out) {
+        for (int out = 0; out < lc.get_output_gates().size(); ++out) {
             Gate output = lc.get_output_gates().get(out);
             evaluateGateHistogramOverlap(output);
 
-            if(output.get_scores().get_conv_overlap() < worst_out) {
+            if (output.get_scores().get_conv_overlap() < worst_out) {
                 worst_out = output.get_scores().get_conv_overlap();
             }
         }
@@ -216,8 +204,8 @@ public class Evaluate {
 
     }
 
-    public static void evaluateCircuitSNR(LogicCircuit lc, Args options){
-
+    public static void evaluateCircuitSNR(LogicCircuit lc, Args options) {
+        //Multiple outputs are considered all together
 
         /*for(Gate g: lc.get_logic_gates()) {
             evaluateGateSNR(g, options);
@@ -225,52 +213,90 @@ public class Evaluate {
         for(Gate g: lc.get_output_gates()) {
             evaluateGateSNR(g, options);
         }*/
+        double[] bins = lc.get_input_gates().get(0).get_histogram_bins().get_LOG_BIN_CENTERS();
+        // @author arashkh to add Jake Beal's SNR measure
+        ArrayList<double[]> input_ons_histogram = new ArrayList<>();
+        ArrayList<double[]> input_offs_histogram = new ArrayList<>();
 
-
-        ArrayList<Double> input_ons = new ArrayList<>();
-        ArrayList<Double> input_offs = new ArrayList<>();
-
-        for(Gate input: lc.get_input_gates()) {
+        for (Gate input : lc.get_input_gates()) {
             for (int i = 0; i < input.get_logics().size(); ++i) {
                 if (input.get_logics().get(i) == 1) {
-                    input_ons.add(input.get_outrpus().get(i));
+                    input_ons_histogram.add(input.get_histogram_rpus().get(i));
                 } else if (input.get_logics().get(i) == 0) {
-                    input_offs.add(input.get_outrpus().get(i));
+                    input_offs_histogram.add(input.get_histogram_rpus().get(i));
                 }
             }
         }
 
-        Double input_on_min  = Collections.min(input_ons);
-        Double input_off_max = Collections.max(input_offs);
+        Double[] input_ons_characteristics = distributionCharacteristicsCalculator(bins, input_ons_histogram);
+        Double input_on_mean = input_ons_characteristics[0];
+        Double input_on_sd = input_ons_characteristics[1];
 
+        Double[] input_offs_characteristics = distributionCharacteristicsCalculator(bins, input_offs_histogram);
+        Double input_off_mean = input_offs_characteristics[0];
+        Double input_off_sd = input_offs_characteristics[1];
 
-        ArrayList<Double> output_ons = new ArrayList<>();
-        ArrayList<Double> output_offs = new ArrayList<>();
+        ArrayList<double[]> output_ons_histogram = new ArrayList<>();
+        ArrayList<double[]> output_offs_histogram = new ArrayList<>();
 
-        for(Gate output: lc.get_output_gates()) {
+        for (Gate output : lc.get_output_gates()) {
             for (int i = 0; i < output.get_logics().size(); ++i) {
                 if (output.get_logics().get(i) == 1) {
-                    output_ons.add(output.get_outrpus().get(i));
+                    output_ons_histogram.add(output.get_histogram_rpus().get(i));
                 } else if (output.get_logics().get(i) == 0) {
-                    output_offs.add(output.get_outrpus().get(i));
+                    output_offs_histogram.add(output.get_histogram_rpus().get(i));
                 }
             }
         }
 
-        Double output_on_min  = Collections.min(output_ons);
-        Double output_off_max = Collections.max(output_offs);
+        Double[] output_ons_characteristics = distributionCharacteristicsCalculator(bins, output_ons_histogram);
+        Double output_on_mean = output_ons_characteristics[0];
+        Double output_on_sd = output_ons_characteristics[1];
 
-        Double out_snr = 20 * Math.log10((Math.log10(output_on_min / output_off_max)) / (2 * Math.log10(3.2)));
+        Double[] output_offs_characteristics = distributionCharacteristicsCalculator(bins, output_offs_histogram);
+        Double output_off_mean = output_offs_characteristics[0];
+        Double output_off_sd = output_offs_characteristics[1];
 
-        Double in_snr  = 20 * Math.log10((Math.log10(input_on_min / input_off_max)) / (2 * Math.log10(3.2)));
+        Double out_snr = 20 * Math.log10(Math.abs((Math.log10(output_on_mean / output_off_mean)) / (Math.log10(output_on_sd * output_off_sd))));
+
+        Double in_snr = 20 * Math.log10(Math.abs((Math.log10(input_on_mean / input_off_mean)) / (Math.log10(input_on_sd * input_off_sd))));
 
         Double dsnr = out_snr - in_snr;
 
         lc.get_scores().set_snr(out_snr);
         lc.get_scores().set_dsnr(dsnr);
+        System.out.println("SNR: " + lc.get_scores().get_snr());
+        System.out.println("DSNR: " + lc.get_scores().get_dsnr());
+        //*****************************************************************
     }
 
+    public static void evaluateCircuitCorrectness(LogicCircuit lc, Args options) {
+        // @author arashkh to add Swati Bhatia's Correctness measure
 
+        double angular_error = 0; // Angular error in degrees
+        double truthtablevector_length = 0, truthtablevector_length_squared = 0;// Length of the truth table vector used for cosine similarity denominator
+        double signalvector_length = 0, signalvector_length_squared = 0;// Length of the signal vector used for cosine similarity denominator
+        double numerator = 0;// Numerator of the cosine simmilarity measure
+        double denominator = 0;// Denominator of the cosine simmilarity measure
+
+        for (Gate g : lc.get_output_gates()) {
+            for (int i = 0; i < g.get_logics().size(); ++i) {
+                if (g.get_logics().get(i) == 1) {
+                    numerator += g.get_outrpus().get(i); // Calculate cosine multiplication of the two vectors
+                    truthtablevector_length_squared += Math.pow(1, 2); // Calculate the squared length of the truth table vector
+                }
+                signalvector_length_squared += Math.pow(g.get_outrpus().get(i), 2);// Calculate the squared length of the signal vector
+            }
+        }
+
+        truthtablevector_length = Math.sqrt(truthtablevector_length_squared);// Calculate the length of the truth table vector
+        signalvector_length = Math.sqrt(signalvector_length_squared);// Calculate the squared length of the signal vector
+        denominator = signalvector_length * truthtablevector_length;// Calculate denominator
+
+        angular_error = Math.acos(numerator / denominator) * (180 / Math.PI); // Calculate angular error in degrees
+        lc.get_scores().set_correctness(angular_error);
+        //*****************************************************************
+    }
 
     /////////////////////////////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////////////////////////
@@ -279,36 +305,32 @@ public class Evaluate {
     /////////////////////////////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////////////////////////
-
-
     public static void evaluateGate(Gate g, Args options) {
 
         //refreshGateAttributes(g);
         //simulateRPU(g);
-
         evaluateGateONOFFRatio(g);
 
-        if(options.is_noise_margin()) {
+        if (options.is_noise_margin()) {
             evaluateGateNoiseMargin(g, options);
         }
 
-        if(options.is_snr()) {
+        if (options.is_snr()) {
             evaluateGateSNR(g, options);
         }
     }
-
 
     /**
      *
      * find ON_lowest and OFF_highest as worst-case scenario
      *
      */
-    public static void evaluateGateONOFFRatio(Gate g){
+    public static void evaluateGateONOFFRatio(Gate g) {
 
-        double lowest_on_rpu   = Double.MAX_VALUE;
+        double lowest_on_rpu = Double.MAX_VALUE;
         double highest_off_rpu = Double.MIN_VALUE;
 
-        for(int i=0; i<g.get_logics().size(); ++i) { //for each row in the truth table...
+        for (int i = 0; i < g.get_logics().size(); ++i) { //for each row in the truth table...
             //if (!Args.dontcare_rows.contains(i)) { //don't score dontcare rows
             Double rpu = g.get_outrpus().get(i);
 
@@ -324,42 +346,40 @@ public class Evaluate {
             //}
         }
         //g.get_scores().set_onoff_ratio( Math.log10(lowest_on_rpu/highest_off_rpu) );
-        g.get_scores().set_onoff_ratio(lowest_on_rpu/highest_off_rpu );
+        g.get_scores().set_onoff_ratio(lowest_on_rpu / highest_off_rpu);
     }
 
     /**
-     * score = 1 - penalty of histogram overlap
-     * score all ON:OFF pairs and report the worst score
+     * score = 1 - penalty of histogram overlap score all ON:OFF pairs and
+     * report the worst score
      *
-     * overlap penalty:
-     *      for each bin, compute geometric mean of two ON:OFF histogram values, add add bin penalty to total penalty
-     *      alternative is to penalize the min of the two ON:OFF histogram values
+     * overlap penalty: for each bin, compute geometric mean of two ON:OFF
+     * histogram values, add add bin penalty to total penalty alternative is to
+     * penalize the min of the two ON:OFF histogram values
      *
      */
-    public static void evaluateGateHistogramOverlap(Gate g){
+    public static void evaluateGateHistogramOverlap(Gate g) {
 
         ArrayList<Double> scores_conv_overlap = new ArrayList<Double>();
         ArrayList<Integer> ons = new ArrayList<Integer>();
         ArrayList<Integer> offs = new ArrayList<Integer>();
 
         //get ons and offs
-        for(int i=0; i<g.get_logics().size(); ++i){
-            if(g.get_logics().get(i) == 1){
+        for (int i = 0; i < g.get_logics().size(); ++i) {
+            if (g.get_logics().get(i) == 1) {
                 ons.add(i);
-            }
-            else if(g.get_logics().get(i) == 0){
+            } else if (g.get_logics().get(i) == 0) {
                 offs.add(i);
             }
         }
 
         //compute scores of all on-off pairs
-        for(int on=0; on<ons.size(); ++on) {
-            for(int off=0; off<offs.size(); ++off) {
+        for (int on = 0; on < ons.size(); ++on) {
+            for (int off = 0; off < offs.size(); ++off) {
 
                 //if(!Args.dontcare_rows.contains(on) && !Args.dontcare_rows.contains(off)) {
-
-                double median_on = Math.pow(Math.E, HistogramUtil.median(g.get_histogram_rpus().get(ons.get(on)), g.get_histogram_bins() ));
-                double median_off = Math.pow(Math.E, HistogramUtil.median(g.get_histogram_rpus().get(offs.get(off)), g.get_histogram_bins() ));
+                double median_on = Math.pow(Math.E, HistogramUtil.median(g.get_histogram_rpus().get(ons.get(on)), g.get_histogram_bins()));
+                double median_off = Math.pow(Math.E, HistogramUtil.median(g.get_histogram_rpus().get(offs.get(off)), g.get_histogram_bins()));
                 double score = 1 - median_off / median_on;
                 double overlap_penalty = 0.0;
 
@@ -391,13 +411,13 @@ public class Evaluate {
         g.get_scores().set_conv_overlap(scores_conv_overlap.get(0)); //worst
     }
 
-
     /**
-     * gate score = smallest noise margin (distance in log(RPU) of input RPU to margin RPU)
+     * gate score = smallest noise margin (distance in log(RPU) of input RPU to
+     * margin RPU)
      */
-    public static void evaluateGateNoiseMargin(Gate g, Args options){
+    public static void evaluateGateNoiseMargin(Gate g, Args options) {
 
-        if(options.is_noise_margin() == false) {
+        if (options.is_noise_margin() == false) {
             g.get_scores().set_noise_margin_contract(true);
             return;
         }
@@ -454,9 +474,9 @@ public class Evaluate {
         }
     }
 
-    public static void evaluateGateSNR(Gate g, Args options){
+    public static void evaluateGateSNR(Gate g, Args options) {
 
-        if(g.Type == GateType.INPUT) {
+        if (g.Type == GateType.INPUT) {
             return;
         }
 
@@ -464,11 +484,10 @@ public class Evaluate {
         ArrayList<Double> offs = new ArrayList<>();
 
         //get ons and offs
-        for(int i=0; i<g.get_logics().size(); ++i){
-            if(g.get_logics().get(i) == 1){
+        for (int i = 0; i < g.get_logics().size(); ++i) {
+            if (g.get_logics().get(i) == 1) {
                 ons.add(g.get_outrpus().get(i));
-            }
-            else if(g.get_logics().get(i) == 0){
+            } else if (g.get_logics().get(i) == 0) {
                 offs.add(g.get_outrpus().get(i));
             }
         }
@@ -476,7 +495,7 @@ public class Evaluate {
         ArrayList<Double> child_ons = new ArrayList<>();
         ArrayList<Double> child_offs = new ArrayList<>();
 
-        for(Gate child: g.getChildren()) {
+        for (Gate child : g.getChildren()) {
             for (int i = 0; i < child.get_logics().size(); ++i) {
                 if (child.get_logics().get(i) == 1) {
                     child_ons.add(child.get_outrpus().get(i));
@@ -486,16 +505,15 @@ public class Evaluate {
             }
         }
 
-        Double on_min  = Collections.min(ons);
+        Double on_min = Collections.min(ons);
         Double off_max = Collections.max(offs);
 
-        Double child_on_min  = Collections.min(child_ons);
+        Double child_on_min = Collections.min(child_ons);
         Double child_off_max = Collections.max(child_offs);
-
 
         Double out_snr = 20 * Math.log10((Math.log10(on_min / off_max)) / (2 * Math.log10(3.2)));
 
-        Double in_snr  = 20 * Math.log10((Math.log10(child_on_min / child_off_max)) / (2 * Math.log10(3.2)));
+        Double in_snr = 20 * Math.log10((Math.log10(child_on_min / child_off_max)) / (2 * Math.log10(3.2)));
 
         Double dsnr = out_snr - in_snr;
 
@@ -503,6 +521,35 @@ public class Evaluate {
         g.get_scores().set_dsnr(dsnr);
     }
 
+    public static void evaluateGateCorrectness(Gate g, Args options) {
+
+        // @author arashkh to add Swati Bhatia's Correctness measure
+        if (g.Type == GateType.INPUT) {
+            return;
+        }
+
+        double angular_error = 0; // Angular error in degrees
+        double truthtablevector_length = 0, truthtablevector_length_squared = 0;// Length of the truth table vector used for cosine similarity denominator
+        double signalvector_length = 0, signalvector_length_squared = 0;// Length of the signal vector used for cosine similarity denominator
+        double numerator = 0;// Numerator of the cosine simmilarity measure
+        double denominator = 0;// Denominator of the cosine simmilarity measure
+
+        for (int i = 0; i < g.get_logics().size(); ++i) {
+            if (g.get_logics().get(i) == 1) {
+                numerator += g.get_outrpus().get(i); // Calculate cosine multiplication of the two vectors
+                truthtablevector_length_squared += Math.pow(1, 2); // Calculate the squared length of the truth table vector
+            }
+            signalvector_length_squared += Math.pow(g.get_outrpus().get(i), 2);// Calculate the squared length of the signal vector
+        }
+
+        truthtablevector_length = Math.sqrt(truthtablevector_length_squared);// Calculate the length of the truth table vector
+        signalvector_length = Math.sqrt(signalvector_length_squared);// Calculate the squared length of the signal vector
+        denominator = signalvector_length * truthtablevector_length;// Calculate denominator
+
+        angular_error = Math.acos(numerator / denominator) * (180 / Math.PI); // Calculate angular error in degrees
+        g.get_scores().set_correctness(angular_error);
+        //*****************************************************************
+    }
 
     /////////////////////////////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////////////////////////
@@ -511,86 +558,84 @@ public class Evaluate {
     /////////////////////////////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////////////////////////
-
     /**
      *
      * calls simulateLogic() in Gate.java
      *
      */
-    public static void simulateLogic(LogicCircuit lc){
+    public static void simulateLogic(LogicCircuit lc) {
 
-        for(int i=lc.get_logic_gates().size()-1; i>=0; --i) {
+        for (int i = lc.get_logic_gates().size() - 1; i >= 0; --i) {
             lc.get_logic_gates().get(i).set_unvisited(true);
             simulateLogic(lc.get_logic_gates().get(i));
         }
-        for(int i=0; i<lc.get_output_gates().size(); ++i) {
+        for (int i = 0; i < lc.get_output_gates().size(); ++i) {
             lc.get_output_gates().get(i).set_unvisited(true);
             simulateLogic(lc.get_output_gates().get(i));
         }
     }
 
-
     /**
      *
-     * for all logic and output gates:
-     *     set flag simulate_rpu = true (indicates that RPU needs to be simulated)
-     *     then call simulateRPU() in Gate.java
+     * for all logic and output gates: set flag simulate_rpu = true (indicates
+     * that RPU needs to be simulated) then call simulateRPU() in Gate.java
      *
      * Hill function evaluation
      *
      */
-    public static void simulateRPU(LogicCircuit lc, GateLibrary gate_library, Args options){
+    public static void simulateRPU(LogicCircuit lc, GateLibrary gate_library, Args options) {
         ArrayList<Gate> logic_and_output_gates = new ArrayList<Gate>();
         logic_and_output_gates.addAll(lc.get_logic_gates());
         logic_and_output_gates.addAll(lc.get_output_gates());
 
-
         //input gate RPU already set
         //make sure that all gates are re-simulated by setting simulate_rpu to TRUE
-        for(Gate gate: logic_and_output_gates){
+        for (Gate gate : logic_and_output_gates) {
             gate.set_unvisited(true);
         }
-        for(Gate gate: logic_and_output_gates){
+        for (Gate gate : logic_and_output_gates) {
             Evaluate.simulateRPU(gate, gate_library, options);
         }
     }
 
     /**
      *
-     * Same as above, but converts input distr to output distr using a matrix transfer function
+     * Same as above, but converts input distr to output distr using a matrix
+     * transfer function
      *
      */
-    public static void simulateHistogramRPU(LogicCircuit lc, GateLibrary gate_library, Args options){
+    public static void simulateHistogramRPU(LogicCircuit lc, GateLibrary gate_library, Args options) {
 
         ArrayList<Gate> logic_and_output_gates = new ArrayList<Gate>();
         logic_and_output_gates.addAll(lc.get_logic_gates());
         logic_and_output_gates.addAll(lc.get_output_gates());
 
         //input gate RPU already set
-        for(Gate gate: logic_and_output_gates){
+        for (Gate gate : logic_and_output_gates) {
             gate.set_unvisited(true);
         }
-        for(Gate gate: logic_and_output_gates){
+        for (Gate gate : logic_and_output_gates) {
             simulateHistogramRPU(gate, gate_library, options);
         }
     }
 
-
-
     /**
      *
-     * Set the transfer function parameters or matrix transfer functions based on the gate name
+     * Set the transfer function parameters or matrix transfer functions based
+     * on the gate name
      *
      */
     public static void refreshGateAttributes(LogicCircuit lc, GateLibrary gate_library) {
         refreshGateAttributes(lc.get_logic_gates(), gate_library);
         refreshGateAttributes(lc.get_output_gates(), gate_library);
     }
+
     public static void refreshGateAttributes(ArrayList<Gate> gates, GateLibrary gate_library) {
         for (Gate g : gates) {
             refreshGateAttributes(g, gate_library);
         }
     }
+
     public static void refreshGateAttributes(Gate g, GateLibrary gate_library) {
 
         if (g.Type == GateType.OUTPUT || g.Type == GateType.OUTPUT_OR) {
@@ -602,110 +647,109 @@ public class Evaluate {
             g.set_variable_names(variable_names);
 
             HashMap<String, Double[]> variable_thresholds = new HashMap<>();
-            variable_thresholds.put("x", new Double[]{null,null});
+            variable_thresholds.put("x", new Double[]{null, null});
             g.set_variable_thresholds(variable_thresholds);
 
             String equation = String.valueOf(g.get_unit_conversion()) + "*x";
             g.set_equation(equation);
-        }
-
-        else if (gate_library.get_GATES_BY_NAME().containsKey(g.Name)) {
+        } else if (gate_library.get_GATES_BY_NAME().containsKey(g.Name)) {
             g.set_params(gate_library.get_GATES_BY_NAME().get(g.Name).get_params());
 
-            if(g.get_variable_names().isEmpty()) {
+            if (g.get_variable_names().isEmpty()) {
                 g.set_variable_names(gate_library.get_GATES_BY_NAME().get(g.Name).get_variable_names());
             }
 
             g.set_variable_thresholds(gate_library.get_GATES_BY_NAME().get(g.Name).get_variable_thresholds());
             g.set_equation(gate_library.get_GATES_BY_NAME().get(g.Name).get_equation());
 
-            g.System    = gate_library.get_GATES_BY_NAME().get(g.Name).System;
-            g.ColorHex  = gate_library.get_GATES_BY_NAME().get(g.Name).ColorHex;
-            g.Group     = gate_library.get_GATES_BY_NAME().get(g.Name).Group;
+            g.System = gate_library.get_GATES_BY_NAME().get(g.Name).System;
+            g.ColorHex = gate_library.get_GATES_BY_NAME().get(g.Name).ColorHex;
+            g.Group = gate_library.get_GATES_BY_NAME().get(g.Name).Group;
             g.Regulator = gate_library.get_GATES_BY_NAME().get(g.Name).Regulator;
-            g.Inducer   = gate_library.get_GATES_BY_NAME().get(g.Name).Inducer;
+            g.Inducer = gate_library.get_GATES_BY_NAME().get(g.Name).Inducer;
 
             //if(Args.histogram) {
-            if(gate_library.get_GATES_BY_NAME().get(g.Name).get_xfer_hist() != null) {
+            if (gate_library.get_GATES_BY_NAME().get(g.Name).get_xfer_hist() != null) {
                 g.set_xfer_hist(gate_library.get_GATES_BY_NAME().get(g.Name).get_xfer_hist());
             }
-        }
-
-        else {
-            g.System    = "null";
-            g.ColorHex  = "null";
-            g.Group     = "null";
+        } else {
+            g.System = "null";
+            g.ColorHex = "null";
+            g.Group = "null";
             g.Regulator = "null";
-            g.Inducer   = "";
+            g.Inducer = "";
         }
     }
 
-
-    /***********************************************************************
-
-     Synopsis    [  ]
-
-     keep tracing back to child until find one with logics defined
-     assume it has either 1 or 2 children
-     this method is recursive
-     Note: Recursion is not necessary and does not occur if we sort the gates by distance to input, then simulate logic in that order.
-
-     logic is computed according to Gate type and input logics
-
-     ***********************************************************************/
-    public static void simulateLogic(Gate g){
+    /**
+     * *********************************************************************
+     *
+     * Synopsis [ ]
+     *
+     * keep tracing back to child until find one with logics defined assume it
+     * has either 1 or 2 children this method is recursive Note: Recursion is
+     * not necessary and does not occur if we sort the gates by distance to
+     * input, then simulate logic in that order.
+     *
+     * logic is computed according to Gate type and input logics
+     *
+     **********************************************************************
+     */
+    public static void simulateLogic(Gate g) {
 
         if (g.is_unvisited()) {
 
             ArrayList<Gate> children = g.getChildren();
 
-            for(Gate child: children) {
-                if(child.is_unvisited()){
+            for (Gate child : children) {
+                if (child.is_unvisited()) {
                     simulateLogic(child); //recursive
                 }
             }
 
             //if all children have been visited, visit the current gate 'g'
-            g.set_unvisited( false );
-            g.set_logics( GateUtil.computeGateLogics(g) );
+            g.set_unvisited(false);
+            g.set_logics(GateUtil.computeGateLogics(g));
         }
     }
 
-    /***********************************************************************
-
-     Synopsis    [  ]
-
-     keep tracing back to child until find one with logics defined
-     assume it has either 1 or 2 children
-     this method is recursive
-     Note: Recursion is not necessary and does not occur if we sort the gates by distance to input, then simulate logic in that order.
-
-     For NOT gate, compute output RPU based on child1 RPU and xfer function
-     For NOR gate, compute output RPU based on child1 RPU + child2 RPU and xfer function
-     For OUTPUT gate, output RPU = child1 RPU
-     For OUTPUT_OR gate, output RPU = child1 RPU + child2 RPU
-
-     ***********************************************************************/
-    public static void simulateRPU(Gate g, GateLibrary gate_library, Args options){
+    /**
+     * *********************************************************************
+     *
+     * Synopsis [ ]
+     *
+     * keep tracing back to child until find one with logics defined assume it
+     * has either 1 or 2 children this method is recursive Note: Recursion is
+     * not necessary and does not occur if we sort the gates by distance to
+     * input, then simulate logic in that order.
+     *
+     * For NOT gate, compute output RPU based on child1 RPU and xfer function
+     * For NOR gate, compute output RPU based on child1 RPU + child2 RPU and
+     * xfer function For OUTPUT gate, output RPU = child1 RPU For OUTPUT_OR
+     * gate, output RPU = child1 RPU + child2 RPU
+     *
+     **********************************************************************
+     */
+    public static void simulateRPU(Gate g, GateLibrary gate_library, Args options) {
 
         if (g.is_unvisited()) {
 
-            g.set_unvisited( false );
-
+            g.set_unvisited(false);
 
             ArrayList<Gate> children = g.getChildren();
-            for(Gate child: children) {
-                if(child.is_unvisited()) {
+            for (Gate child : children) {
+                if (child.is_unvisited()) {
                     Evaluate.simulateRPU(child, gate_library, options);
                 }
             }
 
-
             /**
-             * Multidimensional response functions are not symmetric, so which wire maps to which variable must be determined.
-             * Not relevant if there is only a single independent variable in the response function (i.e. Hill equation).
+             * Multidimensional response functions are not symmetric, so which
+             * wire maps to which variable must be determined. Not relevant if
+             * there is only a single independent variable in the response
+             * function (i.e. Hill equation).
              */
-            if(g.get_variable_names().size() > 1) {
+            if (g.get_variable_names().size() > 1) {
                 setBestVariableMapping(g, gate_library, options);
             }
 
@@ -716,7 +760,6 @@ public class Evaluate {
 
             g.get_inrpus().clear();
 
-
             for (int i = 0; i < g.get_logics().size(); ++i) { //rows in truth table
                 /*if (Args.dontcare_rows.contains(i)) {
                     g.get_outrpus().add(0.0);
@@ -726,16 +769,15 @@ public class Evaluate {
                 GateUtil.mapWiresToVariables(g, g.get_variable_names());
 
                 /**
-                 * For example, String = "x".
-                 * Double = summed RPUs for tandem promoters
-                 * i is the row in the truth table.
+                 * For example, String = "x". Double = summed RPUs for tandem
+                 * promoters i is the row in the truth table.
                  */
                 HashMap<String, Double> variable_values = GateUtil.getVariableValues(g, i, gate_library, options);
 
                 //v = "x"
-                for(String v: variable_values.keySet()) {
+                for (String v : variable_values.keySet()) {
 
-                    if(!g.get_inrpus().containsKey(v)) {
+                    if (!g.get_inrpus().containsKey(v)) {
                         //initialize with empty arraylist
                         g.get_inrpus().put(v, new ArrayList<Double>());
                     }
@@ -753,20 +795,14 @@ public class Evaluate {
                 g.get_outrpus().add(output_rpu);
             }
 
-
             //evaluateGate(g);
-
             //////////////////////////////////////////////
-
-
-
         }
     }
 
-
     /**
-     * A gate with two transcriptional units (e.g. AND) can have two different wirings.
-     * Doesn't matter for a gate with one txn unit.
+     * A gate with two transcriptional units (e.g. AND) can have two different
+     * wirings. Doesn't matter for a gate with one txn unit.
      *
      * @param g
      * @param gate_library
@@ -789,7 +825,6 @@ public class Evaluate {
                     g.get_outrpus().add(0.0);
                     continue;
                 }*/
-
                 GateUtil.mapWiresToVariables(g, variable_name_order);
 
                 double output_rpu = ResponseFunction.computeOutput(
@@ -815,24 +850,23 @@ public class Evaluate {
 
     }
 
-
-
-    /***********************************************************************
-
-     Synopsis    [  ]
-
-     ***********************************************************************/
+    /**
+     * *********************************************************************
+     *
+     * Synopsis [ ]
+     *
+     **********************************************************************
+     */
     public static void simulateHistogramRPU(Gate g, GateLibrary gate_library, Args options) {
 
         if (g.is_unvisited()) {
 
             g.set_unvisited(false);
 
-
             ArrayList<Gate> children = g.getChildren();
-            for(Gate child: children) {
-                if(child.is_unvisited()) {
-                    simulateHistogramRPU(child,gate_library,options);
+            for (Gate child : children) {
+                if (child.is_unvisited()) {
+                    simulateHistogramRPU(child, gate_library, options);
                 }
             }
 
@@ -846,18 +880,16 @@ public class Evaluate {
                 }
             }
 
-            if ( g.Type == GateType.OUTPUT_OR || g.Type == GateType.OUTPUT ) {
+            if (g.Type == GateType.OUTPUT_OR || g.Type == GateType.OUTPUT) {
                 g.set_histogram_rpus(GateUtil.getSumOfGateInputHistograms(g, gate_library, options));
                 GateUtil.outputHistogramUnitConversion(g);
-            }
-            else if (g.Type == GateType.AND) {
+            } else if (g.Type == GateType.AND) {
                 g.set_histogram_rpus(GateUtil.getANDOfGateInputHistograms(g));
-            }
-            else if (g.Type == GateType.NOT || g.Type == GateType.NOR){
+            } else if (g.Type == GateType.NOT || g.Type == GateType.NOR) {
                 //2. For each row: for each bin: for each output bin: add normalizeToValue
-                ArrayList<double[]> input_convrpus = GateUtil.getSumOfGateInputHistograms(g, gate_library,options);
+                ArrayList<double[]> input_convrpus = GateUtil.getSumOfGateInputHistograms(g, gate_library, options);
                 g.set_in_histogram_rpus(input_convrpus);
-                
+
                 for (int i = 0; i < input_convrpus.size(); ++i) {
 
                     /*if(Args.dontcare_rows.contains(i)) {
@@ -866,14 +898,13 @@ public class Evaluate {
                         }
                         continue;
                     }*/
-
                     double[] convhist = input_convrpus.get(i);
 
                     for (int bin = 0; bin < g.get_histogram_bins().get_NBINS(); ++bin) {
                         double fractional_counts = convhist[bin];
                         double[] xslice = g.get_xfer_hist().get_xfer_interp().get(bin);
 
-                        for(int xslice_bin = 0; xslice_bin<g.get_histogram_bins().get_NBINS(); ++xslice_bin) {
+                        for (int xslice_bin = 0; xslice_bin < g.get_histogram_bins().get_NBINS(); ++xslice_bin) {
                             g.get_histogram_rpus().get(i)[xslice_bin] += xslice[xslice_bin] * fractional_counts;
                         }
                     }
@@ -881,8 +912,44 @@ public class Evaluate {
             }
 
             //evaluateGateHistogramOverlap(g); //to compute gate scores
-
         }
+    }
+
+    private static Double[] distributionCharacteristicsCalculator(double[] bins, ArrayList<double[]> histogramList) {
+        Double sd = 0.0;
+        Double mean = 0.0;
+        Double[] result = new Double[]{-1.1, -1.1};
+        double[] histogram = new double[bins.length];
+        for (double[] dArray : histogramList) {
+            if (null == dArray) continue;
+            if (dArray.length != histogram.length) {
+                return result;
+            }
+            for (int i = 0; i < histogram.length; i++) {
+                histogram[i] += dArray[i];
+            }
+        }
+
+        //System.out.println("Acc Hist Length:" + histogram.length);
+        
+        Double sum_mean = 0.0;
+        Double number = 0.0;
+        for (int i = 0; i < histogram.length; i++) {
+            sum_mean += Math.pow(10,bins[i]) * histogram[i];
+            number += histogram[i];
+        }
+        mean = sum_mean / number;
+
+        Double sum_sd = 0.0;
+        for (int i = 0; i < histogram.length; i++) {
+            sum_sd += Math.pow((Math.pow(10,bins[i]) - mean), 2) * histogram[i];
+        }
+        //for (int i = 0; i<histogram.length; i++) System.out.println(i + " : " +histogram[i]);
+        //System.out.println("sum_sd: " + sum_sd + "\tnumber: " + number);
+        sd = Math.sqrt(sum_sd / number);
+        result = new Double[]{mean, sd};
+        //System.out.println("Mean: " + mean + "\tSD: " + sd);
+        return result;
     }
 
 };

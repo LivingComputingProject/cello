@@ -58,6 +58,8 @@ public class Args {
     @Getter @Setter private boolean _tandem_promoter = false;
     @Getter @Setter private Double _gate_onoff_threshold = 10.0;
     @Getter @Setter private boolean _snr = false; // generate signal-to-noise ratio plots
+    @Getter @Setter private boolean _localoptimize = false; // execute local optimization -- @author arashkh
+    @Getter @Setter private int _metricscalculation = 50; // number of assignments for metrics calculation -- @author arashkh
 
     @Getter @Setter private boolean _histogram = true; // use cytometry data for a distribution-based score
     @Getter @Setter private Double _histogram_threshold = 0.50; // circuits below threshold will not pass

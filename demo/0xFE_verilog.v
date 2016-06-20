@@ -1,5 +1,5 @@
 module A(output out1,  input in1, in2, in3);
-  always@(in1,in2)
+  always@(in1,in2,in3)
     begin
       case({in1,in2,in3})
         3'b000: {out1} = 1'b1;

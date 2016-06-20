@@ -1,6 +1,5 @@
 package org.cellocad.adaptors.sboladaptor;
 
-
 import org.cellocad.MIT.dnacompiler.Args;
 import org.cellocad.MIT.dnacompiler.Gate;
 import org.cellocad.MIT.dnacompiler.LogicCircuit;
@@ -8,20 +7,23 @@ import org.cellocad.MIT.dnacompiler.Part;
 import org.sbolstandard.core2.*;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
-
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 // TODO Needs to be generalized for other gate types
-
 public class SBOLCircuitWriter {
 
-
-    /***********************************************************************
-
-     ***********************************************************************/
+    /**
+     * *********************************************************************
+     *
+     **********************************************************************
+     */
     public String writeSBOLCircuit(String output_filename, LogicCircuit lc, ArrayList<Part> plasmid, String prefix, Args options) {
 
         _sequence_ontology_map.put("ribozyme", SequenceOntology.INSULATOR);
@@ -36,18 +38,24 @@ public class SBOLCircuitWriter {
 
         _circuit_name = prefix.replace("-", "_");
 
-
         /////////////////////////////////////////////
         //////////  Populate circuit design data
         /////////////////////////////////////////////
-
         setInteractionMap(lc);
-
-
+        
+        /*System.out.println("no of promoters: " + _production_promoters.size() + "\tno of proteins: " + _production_proteins.size());
+        for (int i = 0; i < _production_promoters.size(); i++) {
+            System.out.println("promoter: " + _production_promoters.get(i) + "\tprotein: " + _production_proteins.get(i));
+        }
+        
+        System.out.println("no of parts in plasmid: " + plasmid.size());
+        for (int i = 0; i<plasmid.size(); i++){
+            System.out.println(plasmid.get(i));
+        }*/
+        
         /////////////////////////////////////////////
         //////////  Structural layer: component definitions
         /////////////////////////////////////////////
-
         setCircuitComponentDefinition(plasmid);
 
         setPartComponentDefinitions(plasmid);
@@ -57,7 +65,6 @@ public class SBOLCircuitWriter {
         /////////////////////////////////////////////
         //////////  Functional layer: Module definitions, modules, functional components
         /////////////////////////////////////////////
-
         setCircuitModuleDefinition();
 
         setPartFunctionalComponents();
@@ -66,18 +73,23 @@ public class SBOLCircuitWriter {
         setRepressionInteractions(plasmid);
         setInducerInteractions(plasmid);
 
+        //////////////////////////////////////////////////
+        /////////////// SBOL Validator Stuff
+        //////////////////////////////////////////////////
+        removeDuplicates();
 
-
+        //////////////////////////////////////////////////
+        /////////////// SBOL to SBML stuff
+        //////////////////////////////////////////////////
+        setDegradarionInteractions();
 
         //////////////////////////////////////////////////
         /////////////// write to sbolDocument
         //////////////////////////////////////////////////
-
         String output_filepath = options.get_output_directory() + "/" + output_filename;
         try {
             org.sbolstandard.core2.SBOLWriter.write(_document, output_filepath);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -85,6 +97,156 @@ public class SBOLCircuitWriter {
 
     }
 
+    public String writeSBOLOutput(String output_filename, LogicCircuit lc, ArrayList<Part> plasmid, String prefix, Args options) {
+        _sequence_ontology_map.put("ribozyme", SequenceOntology.INSULATOR);
+        _sequence_ontology_map.put("rbs", SequenceOntology.RIBOSOME_ENTRY_SITE);
+        _sequence_ontology_map.put("cds", SequenceOntology.CDS);
+        _sequence_ontology_map.put("terminator", SequenceOntology.TERMINATOR);
+        _sequence_ontology_map.put("promoter", SequenceOntology.PROMOTER);
+        _sequence_ontology_map.put("output", SequenceOntology.CDS);
+
+        _document = new org.sbolstandard.core2.SBOLDocument();
+        _document.setDefaultURIprefix("http://cellocad.org");
+
+        _circuit_name = prefix.replace("-", "_");
+
+        /////////////////////////////////////////////
+        //////////  Populate circuit design data
+        /////////////////////////////////////////////
+        setInteractionMapOutput(plasmid);
+
+        /////////////////////////////////////////////
+        //////////  Structural layer: component definitions
+        /////////////////////////////////////////////
+        setCircuitComponentDefinition(plasmid);
+
+        setPartComponentDefinitions(plasmid);
+
+        setAnnotations();
+
+        /////////////////////////////////////////////
+        //////////  Functional layer: Module definitions, modules, functional components
+        /////////////////////////////////////////////
+        setCircuitModuleDefinition();
+
+        setPartFunctionalComponents();
+
+        setProductionInteractions(plasmid);
+        setRepressionInteractions(plasmid);
+        setInducerInteractions(plasmid);
+
+        //////////////////////////////////////////////////
+        /////////////// SBOL Validator Stuff
+        //////////////////////////////////////////////////
+        removeDuplicates();
+
+        //////////////////////////////////////////////////
+        /////////////// SBOL to SBML stuff
+        //////////////////////////////////////////////////
+        setDegradarionInteractions();
+
+        //////////////////////////////////////////////////
+        /////////////// write to sbolDocument
+        //////////////////////////////////////////////////
+        String output_filepath = options.get_output_directory() + "/" + output_filename;
+        try {
+            org.sbolstandard.core2.SBOLWriter.write(_document, output_filepath);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return _document.toString();
+    }
+
+    public String writeSBOLComplete(String output_filename, LogicCircuit lc, ArrayList<Part> plasmidCircuit, ArrayList<Part> plasmidOutput, String prefix, Args options) {
+
+        _sequence_ontology_map.put("ribozyme", SequenceOntology.INSULATOR);
+        _sequence_ontology_map.put("rbs", SequenceOntology.RIBOSOME_ENTRY_SITE);
+        _sequence_ontology_map.put("cds", SequenceOntology.CDS);
+        _sequence_ontology_map.put("terminator", SequenceOntology.TERMINATOR);
+        _sequence_ontology_map.put("promoter", SequenceOntology.PROMOTER);
+        _sequence_ontology_map.put("output", SequenceOntology.CDS);
+
+        _document = new org.sbolstandard.core2.SBOLDocument();
+        _document.setDefaultURIprefix("http://cellocad.org");
+
+        _circuit_name = prefix.replace("-", "_");
+
+        ArrayList<Part> plasmid = new ArrayList<>();
+        plasmid.addAll(plasmidCircuit);
+        
+        for (int i = 0; i < plasmidOutput.size(); i++) {
+            Part part = plasmidOutput.get(i);
+            if (part.get_name().startsWith("p")) {
+                plasmid.add(part);
+                plasmid.add(plasmidOutput.get(i+1));
+            }
+        }
+        
+        // Naming convention for Hasan Baig from DTU
+        for (int i = 0; i<plasmid.size(); i++){
+            Part part = plasmid.get(i);
+            if (part.get_type().equals("cds")){
+                String newName = plasmid.get(i-1).get_name()+plasmid.get(i).get_name();
+                for (Gate g : lc.get_Gates()){
+                    if (g.Regulator.equals(plasmid.get(i).get_name())){
+                        g.Regulator = newName;
+                    }
+                }
+                plasmid.get(i).set_name(newName);
+            }
+            //System.out.println(part);
+        }
+
+        /////////////////////////////////////////////
+        //////////  Populate circuit design data
+        /////////////////////////////////////////////
+        setInteractionMap(lc);
+        
+
+        /////////////////////////////////////////////
+        //////////  Structural layer: component definitions
+        /////////////////////////////////////////////
+        setCircuitComponentDefinition(plasmid);
+
+        setPartComponentDefinitions(plasmid);
+
+        setAnnotations();
+
+        /////////////////////////////////////////////
+        //////////  Functional layer: Module definitions, modules, functional components
+        /////////////////////////////////////////////
+        setCircuitModuleDefinition();
+
+        setPartFunctionalComponents();
+
+        setProductionInteractions(plasmid);
+        setRepressionInteractions(plasmid);
+        setInducerInteractions(plasmid);
+
+        //////////////////////////////////////////////////
+        /////////////// SBOL Validator Stuff
+        //////////////////////////////////////////////////
+        removeDuplicates();
+
+        //////////////////////////////////////////////////
+        /////////////// SBOL to SBML stuff
+        //////////////////////////////////////////////////
+        setDegradarionInteractions();
+
+        //////////////////////////////////////////////////
+        /////////////// write to sbolDocument
+        //////////////////////////////////////////////////
+        String output_filepath = options.get_output_directory() + "/" + output_filename;
+        try {
+            org.sbolstandard.core2.SBOLWriter.write(_document, output_filepath);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return _document.toString();
+
+    }
 
     /**
      * Annotate plasmid with start bp and end bp for each part
@@ -94,7 +256,7 @@ public class SBOLCircuitWriter {
         int current_bp = 1;
 
         //part components were added in setPartComponentDefinitions
-        for(Component c: _part_components) {
+        for (Component c : _part_components) {
 
             String annotationID = "sequence_annotation_" + c.getDisplayId() + "_" + _annotation_index;
 
@@ -103,11 +265,11 @@ public class SBOLCircuitWriter {
             Integer next_bp = current_bp;
 
             Set<Sequence> component_seq_set = cd.getSequences();
-            for(Sequence component_seq: component_seq_set) {
+            for (Sequence component_seq : component_seq_set) {
                 next_bp += component_seq.getElements().length();
             }
 
-            SequenceAnnotation sequenceAnnotation = _circuit_component_definition.createSequenceAnnotation(annotationID, "locationID"+_annotation_index, current_bp, next_bp);
+            SequenceAnnotation sequenceAnnotation = _circuit_component_definition.createSequenceAnnotation(annotationID, "locationID" + _annotation_index, current_bp, next_bp);
             sequenceAnnotation.setComponent(c.getIdentity());
 
             _annotation_index++;
@@ -117,10 +279,9 @@ public class SBOLCircuitWriter {
 
     }
 
-
     /**
-     * Highest level in the functional layer.
-     * Contains functional components (promoter, protein, inducer) and interactions between fc's.
+     * Highest level in the functional layer. Contains functional components
+     * (promoter, protein, inducer) and interactions between fc's.
      */
     public void setCircuitModuleDefinition() {
 
@@ -130,25 +291,24 @@ public class SBOLCircuitWriter {
         _circuit_module_definition.addRole(gateRoleURI);
     }
 
-
     /**
      * Functional components for promoters and cds's.
      */
     public void setPartFunctionalComponents() {
 
-        for(ComponentDefinition part_cd: _part_component_definitions) {
+        for (ComponentDefinition part_cd : _part_component_definitions) {
 
             for (URI role : part_cd.getRoles()) {
                 if (role.equals(_sequence_ontology_map.get("promoter")) || role.equals(_sequence_ontology_map.get("cds"))) {
 
                     boolean fc_exists = false;
-                    for(FunctionalComponent fc: _circuit_module_definition.getFunctionalComponents()) {
-                        if(fc.getDisplayId().equals(part_cd.getDisplayId())) {
+                    for (FunctionalComponent fc : _circuit_module_definition.getFunctionalComponents()) {
+                        if (fc.getDisplayId().equals(part_cd.getDisplayId())) {
                             fc_exists = true;
                         }
                     }
 
-                    if(!fc_exists) {
+                    if (!fc_exists) {
 
                         FunctionalComponent partFunctionalComponent = _circuit_module_definition.createFunctionalComponent(
                                 part_cd.getDisplayId(),
@@ -162,15 +322,15 @@ public class SBOLCircuitWriter {
             }
         }
 
-
     }
 
-
     /**
-     * The circuit plasmid is the highest level in structural layer.
-     * Will include vector backbone if one was specified in the UCF genetic_locations collection.
-     * Currently, I am not creating an SBOL document for each output plasmid, if the output module is on
-     * a separate plasmid from the circuit module.
+     * The circuit plasmid is the highest level in structural layer. Will
+     * include vector backbone if one was specified in the UCF genetic_locations
+     * collection. Currently, I am not creating an SBOL document for each output
+     * plasmid, if the output module is on a separate plasmid from the circuit
+     * module.
+     *
      * @param plasmid
      */
     public void setCircuitComponentDefinition(ArrayList<Part> plasmid) {
@@ -182,13 +342,11 @@ public class SBOLCircuitWriter {
 
         _circuit_component_definition = _document.createComponentDefinition(_circuit_name + "_circuit", circuitTypeURIs);
 
-
         String concatenated_plasmid_sequence = "";
 
-        for(Part p: plasmid) {
+        for (Part p : plasmid) {
             concatenated_plasmid_sequence += p.get_seq(); //what if revcomp?
         }
-
 
         String sequenceDisplayID = _circuit_name + "_circuit" + "_sequence";
 
@@ -197,24 +355,19 @@ public class SBOLCircuitWriter {
         Sequence s = _document.createSequence(sequenceDisplayID, concatenated_plasmid_sequence, encodingURI);
     }
 
-
-
     public void setProductionInteractions(ArrayList<Part> plasmid) {
 
         //production
-
-        for(int i=0; i<_production_promoters.size(); ++i) {
+        for (int i = 0; i < _production_promoters.size(); ++i) {
 
             String promoter_name = _production_promoters.get(i);
-            String protein_name =  _production_proteins.get(i);
-
+            String protein_name = _production_proteins.get(i);
 
             Set<URI> geneticProductionTypes = new HashSet<URI>();
             geneticProductionTypes.add(SystemsBiologyOntology.GENETIC_PRODUCTION);
 
             Set<URI> proteinTypeURIs = new HashSet<URI>();
             proteinTypeURIs.add(URI.create("http://www.biopax.org/release/biopax-level3.owl#Protein"));
-
 
             boolean promoter_cd_exists = false;
             ComponentDefinition promoter_cd = null;
@@ -230,7 +383,6 @@ public class SBOLCircuitWriter {
                 continue;
             }
 
-
             boolean protein_cd_exists = false;
             ComponentDefinition protein_cd;
 
@@ -245,7 +397,6 @@ public class SBOLCircuitWriter {
             } else {
                 protein_cd = _document.createComponentDefinition(protein_name, proteinTypeURIs);
             }
-
 
             boolean promoter_fc_exists = false;
             FunctionalComponent promoter_fc;
@@ -266,10 +417,7 @@ public class SBOLCircuitWriter {
                         DirectionType.NONE
                 );
             }
-
             //FunctionalComponent promoter_fc = _circuit_module_definition.getFunctionalComponent(promoter_name);
-
-
             boolean protein_fc_exists = false;
             FunctionalComponent protein_fc;
 
@@ -315,32 +463,25 @@ public class SBOLCircuitWriter {
     public void setRepressionInteractions(ArrayList<Part> plasmid) {
 
         //repression
-
         for (String protein_name : _repression_map.keySet()) {
 
             String promoter_name = _repression_map.get(protein_name);
 
-
             Set<URI> inhibitionTypeURIs = new HashSet<URI>();
             inhibitionTypeURIs.add(SystemsBiologyOntology.INHIBITION);
-
 
             FunctionalComponent protein_fc = _circuit_module_definition.getFunctionalComponent(protein_name);
 
             FunctionalComponent promoter_fc = _circuit_module_definition.getFunctionalComponent(promoter_name);
 
-
             String repressionInteractionDisplayID = protein_name + "_represses_" + promoter_name;
 
             Interaction repressionInteraction = _circuit_module_definition.createInteraction(repressionInteractionDisplayID, inhibitionTypeURIs);
 
-
             String promoterParticipationID = promoter_name + "_participation";
             String proteinParticipationID = protein_name + "_participation";
 
-
             Participation repression_regulator = repressionInteraction.createParticipation(proteinParticipationID, protein_fc.getDisplayId());
-
 
             boolean plasmid_has_promoter = false;
             for (Part p : plasmid) {
@@ -354,30 +495,24 @@ public class SBOLCircuitWriter {
                 repression_promoter.addRole(SystemsBiologyOntology.PROMOTER);
             }
 
-
             //inhibitor
             URI inhibitorRole = SystemsBiologyOntology.INHIBITOR;
             repression_regulator.addRole(inhibitorRole);
         }
     }
 
-
     public void setInducerInteractions(ArrayList<Part> plasmid) {
-
 
         for (String protein_name : _repression_map.keySet()) {
 
-
             // non-covalent binding
-
             String inducer_name = "";
 
-            if(_noncovalent_map.containsKey(protein_name)) {
+            if (_noncovalent_map.containsKey(protein_name)) {
                 inducer_name = _noncovalent_map.get(protein_name);
             }
 
-            if(inducer_name != "") {
-
+            if (inducer_name != "") {
 
                 //component definition type
                 Set<URI> smallMoleculeTypeURIs = new HashSet<URI>();
@@ -387,13 +522,10 @@ public class SBOLCircuitWriter {
                 Set<URI> complexTypeURIs = new HashSet<URI>();
                 complexTypeURIs.add(URI.create("http://www.biopax.org/release/biopax-level3.owl#Complex"));
 
-
-
                 ComponentDefinition inducer = _document.createComponentDefinition(inducer_name, smallMoleculeTypeURIs);
 
                 String complex_name = inducer_name + "_" + protein_name + "_Complex";
                 ComponentDefinition complex = _document.createComponentDefinition(complex_name, complexTypeURIs);
-
 
                 FunctionalComponent protein_fc = _circuit_module_definition.getFunctionalComponent(protein_name);
 
@@ -411,12 +543,9 @@ public class SBOLCircuitWriter {
                         DirectionType.NONE
                 );
 
-
                 String complexInteractionDisplayID = protein_name + "_binds_" + inducer.getDisplayId();
 
-
                 Interaction noncovalentInteraction = _circuit_module_definition.createInteraction(complexInteractionDisplayID, complexTypeURIs);
-
 
                 String inducerParticipationID = inducer.getDisplayId() + "_participation";
                 String complexParticipationID = complex.getDisplayId() + "_participation";
@@ -426,7 +555,6 @@ public class SBOLCircuitWriter {
                 Participation complex_regulator = noncovalentInteraction.createParticipation(proteinParticipationID, protein_fc.getDisplayId());
                 Participation complex_inducer = noncovalentInteraction.createParticipation(inducerParticipationID, inducer_fc.getDisplayId());
                 Participation complex_complex = noncovalentInteraction.createParticipation(complexParticipationID, complex_fc.getDisplayId());
-
 
                 //ligand
                 URI ligandRole = URI.create("http://identifiers.org/biomodels.sbo/SBO:0000280");
@@ -442,13 +570,9 @@ public class SBOLCircuitWriter {
         }
     }
 
-
-
-
     public void setPartComponentDefinitions(ArrayList<Part> plasmid) {
 
-
-        for(Part p: plasmid) {
+        for (Part p : plasmid) {
 
             //adds cd to document
             ComponentDefinition part_cd = getComponentDefinitionForPart(p);
@@ -462,21 +586,20 @@ public class SBOLCircuitWriter {
             s_set.add(part_seq.getIdentity());
             part_cd.setSequences(s_set);
 
-            if(_sequence_ontology_map.containsKey(p.get_type())) {
+            if (_sequence_ontology_map.containsKey(p.get_type())) {
                 part_cd.addRole(_sequence_ontology_map.get(p.get_type()));
             }
 
             _part_sequences.add(part_seq);
 
-
             boolean exists = false;
-            for(Component c: _circuit_component_definition.getComponents()) {
-                if(c.getDisplayId().equals(part_cd.getDisplayId() + "_component")) {
+            for (Component c : _circuit_component_definition.getComponents()) {
+                if (c.getDisplayId().equals(part_cd.getDisplayId() + "_component")) {
                     _part_components.add(c);
                     exists = true;
                 }
             }
-            if(! exists) {
+            if (!exists) {
                 _part_components.add(_circuit_component_definition.createComponent(part_cd.getDisplayId() + "_component", AccessType.PUBLIC, part_cd.getIdentity()));
             }
         }
@@ -487,15 +610,13 @@ public class SBOLCircuitWriter {
         String sequenceDisplayID = p.get_name() + "_sequence";
 
         //if exists, return the Sequence that was already created.
-
-        for(Sequence s: _document.getSequences()) {
-            if(s.getDisplayId().equals(sequenceDisplayID)) {
+        for (Sequence s : _document.getSequences()) {
+            if (s.getDisplayId().equals(sequenceDisplayID)) {
                 return s;
             }
         }
 
         //if does not exists, create Sequence for part
-
         URI encodingURI = URI.create("http://www.chem.qmul.ac.uk/iubmb/misc/naseq.html");
 
         Sequence s = _document.createSequence(sequenceDisplayID, p.get_seq(), encodingURI);
@@ -503,29 +624,25 @@ public class SBOLCircuitWriter {
         return s;
     }
 
-
     public ComponentDefinition getComponentDefinitionForPart(Part p) {
 
         String cd_displayID = p.get_name();
 
-
         //if exists, return the CD that was already created.
-
-        for(ComponentDefinition cd: _document.getComponentDefinitions()) {
-            if(cd.getDisplayId().equals(cd_displayID)) {
+        for (ComponentDefinition cd : _document.getComponentDefinitions()) {
+            if (cd.getDisplayId().equals(cd_displayID)) {
                 return cd;
             }
         }
 
         //if does not exists, create CD for part
-
         URI partTypeURI = URI.create("http://www.biopax.org/release/biopax-level3.owl#DnaRegion");
         HashSet<URI> partTypeURIs = new HashSet<URI>();
         partTypeURIs.add(partTypeURI);
 
         ComponentDefinition partComponentDefinition = _document.createComponentDefinition(p.get_name(), partTypeURIs);
 
-        if(_sequence_ontology_map.containsKey(p.get_type())) {
+        if (_sequence_ontology_map.containsKey(p.get_type())) {
             partComponentDefinition.addRole(_sequence_ontology_map.get(p.get_type()));
         }
 
@@ -533,35 +650,28 @@ public class SBOLCircuitWriter {
 
     }
 
-
-
     public void setInteractionMap(LogicCircuit lc) {
 
         for (Gate g : lc.get_Gates()) {
 
-            if(g.Type == Gate.GateType.INPUT) {
+            if (g.Type == Gate.GateType.INPUT) {
                 continue;
-            }
-
-
-            else if(g.Type == Gate.GateType.OUTPUT || g.Type == Gate.GateType.OUTPUT_OR) {
-                for(Gate child: g.getChildren()) {
+            } else if (g.Type == Gate.GateType.OUTPUT || g.Type == Gate.GateType.OUTPUT_OR) {
+                for (Gate child : g.getChildren()) {
                     _production_promoters.add(child.get_regulable_promoter().get_name());
                     _production_proteins.add(g.Regulator + "_protein");
                 }
-            }
-
-            else {
+            } else {
                 String promoter_name = g.get_regulable_promoter().get_name();
 
                 _repression_map.put(g.Regulator + "_protein", promoter_name);
 
-                for(Gate child: g.getChildren()) {
+                for (Gate child : g.getChildren()) {
                     _production_promoters.add(child.get_regulable_promoter().get_name());
                     _production_proteins.add(g.Regulator + "_protein");
                 }
 
-                if(g.Inducer != "") {
+                if (g.Inducer != "") {
                     _noncovalent_map.put(g.Regulator + "_protein", g.Inducer);
                 }
             }
@@ -569,11 +679,83 @@ public class SBOLCircuitWriter {
         }
     }
 
+    private void setInteractionMapOutput(ArrayList<Part> plasmid) {
 
-
+        for (int i = 0; i < plasmid.size(); i++) {
+            Part part = plasmid.get(i);
+            if (part.get_name().startsWith("p")) {
+                _production_promoters.add(part.get_name());
+                _production_proteins.add(plasmid.get(i + 1).get_name() + "_protein");
+            }
+        }
+    }
 
     public void setCircuitName(String name) {
         _circuit_name = name;
+    }
+
+    public void removeDuplicates() {
+        //@arashkh For the SBOL Validator to pass
+        for (ComponentDefinition cd : _document.getComponentDefinitions()) {
+            if (cd.getComponents().isEmpty()) {
+                continue;
+            }
+            Set<String> SAComponents = new HashSet();
+            Set<SequenceAnnotation> removeSet = new HashSet();
+            for (SequenceAnnotation SA : cd.getSequenceAnnotations()) {
+                if (SAComponents.contains(SA.getComponent().getIdentity().toString())) {
+                    //System.out.println("Remove: " + SA.getComponent().getIdentity().toString());
+                    removeSet.add(SA);
+                } else {
+                    SAComponents.add(SA.getComponent().getIdentity().toString());
+                }
+            }
+            //System.out.println("removeSet:" + removeSet.toArray()[0]);
+            //System.out.println("Size before:" + cd.getSequenceAnnotations().size());
+            //System.out.println("Size removal:" + removeSet.size());
+            //System.out.println("Contains: " + cd.getSequenceAnnotations().contains(removeSet.toArray()[0]));
+
+            //Just because cd.getSequenceAnnotations from libSbolJ returns a new copy of the set!!!
+            for (SequenceAnnotation SAtoRemove : removeSet) {
+                cd.removeSequenceAnnotation(SAtoRemove);
+            }
+            //System.out.println("Size after:" + cd.getSequenceAnnotations().size());
+            //System.out.println(cd.toString());
+        }
+
+        /*
+        for (ComponentDefinition cd : _document.getComponentDefinitions()){
+            if (cd.getComponents().isEmpty()) continue;
+            for (SequenceAnnotation SA : cd.getSequenceAnnotations()){
+                System.out.println(SA.getComponent().getIdentity().toString());
+            }
+        }
+         */
+        //***********************************
+    }
+
+    public void setDegradarionInteractions() {
+        //@arashkh For the SBML model to hav degradation pathway
+        ArrayList<ModuleDefinition> moduleDefinitions = new ArrayList();
+        moduleDefinitions.addAll(_document.getModuleDefinitions());
+        ModuleDefinition md = moduleDefinitions.get(0);
+        for (FunctionalComponent fc : md.getFunctionalComponents()) {
+            if (fc.getDisplayId().endsWith("_protein")) {
+                try {
+                    String interactionDisplayId = fc.getDisplayId() + "_degrades";
+                    URI interactionTypeURI = new URI("http://identifiers.org/biomodels.sbo/SBO:0000179");//Degradation
+                    md.createInteraction(interactionDisplayId, interactionTypeURI);
+                    String participationDisplayId = fc.getDisplayId() + "_participation";
+                    URI participationRoleURI = new URI("http://identifiers.org/biomodels.sbo/SBO:0000010");//Reactant
+                    //System.out.println(md.getInteraction(interactionDisplayId));
+                    md.getInteraction(interactionDisplayId).createParticipation(participationDisplayId, fc.getIdentity());
+                    md.getInteraction(interactionDisplayId).getParticipation(participationDisplayId).addRole(participationRoleURI);
+                } catch (Exception ex) {
+                    System.out.println("ERROR:\n" + ex.getMessage());
+                }
+            }
+
+        }
     }
 
     private String _filepath = "";
@@ -588,7 +770,6 @@ public class SBOLCircuitWriter {
     private ArrayList<String> _production_proteins = new ArrayList<>();
 
     //private HashMap<String, String> _production_map = new HashMap<String, String>();
-
     private HashMap<String, String> _noncovalent_map = new HashMap<String, String>();
     //private HashMap<String, String> _output_map = new HashMap<String, String>();
 
@@ -600,12 +781,9 @@ public class SBOLCircuitWriter {
 
     private ModuleDefinition _circuit_module_definition;
 
-
     //private ArrayList<FunctionalComponent> _part_functional_components = new ArrayList<FunctionalComponent>();
-
     private int _annotation_index = 1;
 
     private SBOLDocument _document;
-
 
 }

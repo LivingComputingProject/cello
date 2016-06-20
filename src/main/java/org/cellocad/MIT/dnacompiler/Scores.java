@@ -20,6 +20,7 @@ public class Scores {
         _snr   = new Double( scores.get_snr() );
         _dsnr  = new Double( scores.get_dsnr() );
         _noise_margin_contract = scores.is_noise_margin_contract();
+        _correctness = new Double(scores.get_correctness());
     }
 
 
@@ -62,6 +63,8 @@ public class Scores {
     @Getter @Setter private double _noise_margin = -1.0;
     @Getter @Setter private double _snr = -1.0;
     @Getter @Setter private double _dsnr = -1.0;
+    
+    @Getter @Setter private double _correctness = -1.0;
 
     //circuit can be asserted as success or failure based on noise margin contract
     //if one or more gates does not have a noise margin > 0, contract = false

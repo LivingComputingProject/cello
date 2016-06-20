@@ -14,6 +14,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Map;
+import org.cellocad.localoptimizer.CelloAPI;
+
 
 /**
  * Created by Bryan Der on 8/21/15.
