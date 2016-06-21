@@ -766,6 +766,7 @@ public class GateUtil {
                 for (Wire w : g.get_variable_wires().get(v)) {
                     //this is the line that adds RPU values for tandem promoters
                     System.out.println("Wire: " + w + "\tToGate: " + w.To + "\tRow: " + row);
+                    // This is where input values to the gates are being added and this causes problem since we have not yet initialized values for the other gate and we want to read that value(due to the circular pattern in th gates)
                     d += w.To.get_outrpus().get(row);
                 }
                 variable_values.put(v, d);
