@@ -265,8 +265,8 @@ public class Evaluate {
 
         lc.get_scores().set_snr(out_snr);
         lc.get_scores().set_dsnr(dsnr);
-        System.out.println("SNR: " + lc.get_scores().get_snr());
-        System.out.println("DSNR: " + lc.get_scores().get_dsnr());
+        //System.out.println("SNR: " + lc.get_scores().get_snr());
+        //System.out.println("DSNR: " + lc.get_scores().get_dsnr());
         //*****************************************************************
     }
 

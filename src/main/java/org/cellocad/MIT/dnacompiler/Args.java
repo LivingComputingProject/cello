@@ -23,6 +23,7 @@ public class Args {
     @Getter @Setter private String _datapath = "/resources/data/"; // subpath to data files (relative to _home)
     @Getter @Setter private String _UCFfilepath = ""; //filepath for the UCF .json file
     @Getter @Setter private DNACompiler.CircuitType _circuit_type = DNACompiler.CircuitType.combinational;
+    //@Getter @Setter private DNACompiler.CircuitType _circuit_type = DNACompiler.CircuitType.sequential;
 
     @Getter @Setter private String _output_directory = ""; // path to directory where output files will be saved
 
@@ -59,9 +60,9 @@ public class Args {
     @Getter @Setter private Double _gate_onoff_threshold = 10.0;
     @Getter @Setter private boolean _snr = false; // generate signal-to-noise ratio plots
     @Getter @Setter private boolean _localoptimize = false; // execute local optimization -- @author arashkh
-    @Getter @Setter private int _metricscalculation = 50; // number of assignments for metrics calculation -- @author arashkh
+    /*seq-metrics*/@Getter @Setter private boolean _metricscalculation = false; // number of assignments for metrics calculation -- @author arashkh
 
-    @Getter @Setter private boolean _histogram = true; // use cytometry data for a distribution-based score
+    /*seq-metrics*/@Getter @Setter private boolean _histogram = false; // use cytometry data for a distribution-based score
     @Getter @Setter private Double _histogram_threshold = 0.50; // circuits below threshold will not pass
 
     @Getter @Setter private Double _toxicity_threshold = 0.75; // circuits below threshold will not pass
@@ -69,12 +70,13 @@ public class Args {
 
     //search
     @Getter @Setter private int _hill_trajectories = 50; // hill climbing and sim annealing, number of trajectories
-    @Getter @Setter private int _hill_iterations = 500; // hill climbing and sim annealing, number of iterations per trajectory
+    /*seq-metrics*/@Getter @Setter private int _hill_iterations = 5000; // hill climbing and sim annealing, number of iterations per trajectory
     @Getter @Setter private boolean _hill_climb_seed = false; // to use (or not to use) seeding for random number reproducibility
 
     @Getter @Setter ArrayList<String> _exclude_groups = new ArrayList<>();
 
     @Getter @Setter private BuildCircuits.AssignmentAlgorithm _assignment_algorithm = BuildCircuits.AssignmentAlgorithm.sim_annealing; //
+    //@Getter @Setter private BuildCircuits.AssignmentAlgorithm _assignment_algorithm = BuildCircuits.AssignmentAlgorithm.abstract_only; //
 //    @Getter @Setter private int _timelimit = 10; // seconds.
     @Getter @Setter private boolean _unique_repressor_assignments = true; // only output unique repressor assignments
     @Getter @Setter private boolean _unique_rbs_assignments = false; // rbs variants count as unique assignments
@@ -87,7 +89,7 @@ public class Args {
     @Getter @Setter private boolean _eugene_dnaseq = true; // include the DNA sequence of each part/device in Eugene design
     @Getter @Setter private boolean _plasmid = true; // output plasmid DNA sequences for assigned logic circuits
 
-    @Getter @Setter private int _nA = 1; // number of assignments to output
+    /*seq-metrics*/@Getter @Setter private int _nA = 1; // number of assignments to output
     @Getter @Setter private int _nP = 5; // number of plasmids to output
 
     //figures

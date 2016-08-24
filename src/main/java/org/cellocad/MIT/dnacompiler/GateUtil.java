@@ -598,7 +598,7 @@ public class GateUtil {
 
         HashMap<String, Double> variable_values = new HashMap<>();
 
-        System.out.println("getVariableValues for:" + g);
+        //System.out.println("getVariableValues for:" + g);
         if(options.is_tandem_promoter()) {
             //TODO Shuyi's idea is to calculate the grid here, so that we only calculate those we actually need.
             // the trick here is to avoid calculating the grid more than once.
@@ -765,9 +765,18 @@ public class GateUtil {
                 Double d = 0.0;
                 for (Wire w : g.get_variable_wires().get(v)) {
                     //this is the line that adds RPU values for tandem promoters
-                    System.out.println("Wire: " + w + "\tToGate: " + w.To + "\tRow: " + row);
                     // This is where input values to the gates are being added and this causes problem since we have not yet initialized values for the other gate and we want to read that value(due to the circular pattern in th gates)
+                    if (w.To.get_outrpus().size()==row) {
+                        if (w.To.get_logics().get(row)==1){
+                            w.To.get_outrpus().add(w.To.get_params().get("ymax"));
+                        } else {
+                            w.To.get_outrpus().add(w.To.get_params().get("ymin"));
+                        }
+                        System.out.println("Wire: " + w + "\tToGate: " + w.To + "\tRow: " + row + "\tlogic: " + w.To.get_logics().get(row) + "\tval: " + w.To.get_outrpus().get(row));
+                    }
                     d += w.To.get_outrpus().get(row);
+                    
+                    //System.out.println("Wire: " + w + "\tToGate: " + w.To + "\tRow: " + row + "\tlogic: " + w.To.get_logics().get(row) + "\tval: " + w.To.get_outrpus().get(row));
                 }
                 variable_values.put(v, d);
             }

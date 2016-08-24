@@ -780,7 +780,7 @@ public class DNACompiler {
         ArrayList<LogicCircuit> unique_lcs = assigned_lcs;
 
         LinkedHashMap<String, LogicCircuit> unique_lcs_map = new LinkedHashMap<>();
-        if (_options.is_output_all_assignments()) {
+        if (_options.is_output_all_assignments() || _options.get_nA() > 1) {
             for (LogicCircuit lc : assigned_lcs) {
                 String score = Util.sc(lc.get_scores().get_score());
                 unique_lcs_map.put(score, lc);
@@ -858,6 +858,13 @@ public class DNACompiler {
         sortLogicCircuitsByScore(unique_lcs);
         _logic_circuits = new ArrayList<>();
 
+        String metricsResultPath = _options.get_output_directory() + _options.get_jobID() + "_metricscalculation_output.txt";
+        JSONObject metricsResult = new JSONObject();
+        JSONArray tmpScore = new JSONArray();
+        JSONArray tmpCorrectness = new JSONArray();
+        JSONArray tmpSNR = new JSONArray();
+        JSONArray tmpDSNR = new JSONArray();
+
         for (int a = 0; a < _options.get_nA(); ++a) {
 
             LogicCircuit lc = new LogicCircuit(unique_lcs.get(a));
@@ -889,7 +896,7 @@ public class DNACompiler {
             logger.info(lc.get_netlist());
             Util.fileWriter(_options.get_output_directory() + lc.get_assignment_name() + "_bionetlist.txt", lc.get_netlist(), false);
 
-            if (_options.is_histogram()) {
+            if (_options.is_histogram() || _options.is_metricscalculation()) {
 
                 logger.info("=========== Simulate cytometry distributions");
 
@@ -962,28 +969,41 @@ public class DNACompiler {
                 logger.info("---------------   Warning: input promoter roadblocking ----");
                 logger.info("-----------------------------------------------------------\n");
             }
+
+            //@arashk
+            if (_options.is_localoptimize()) {
+                this.localOptimize();
+            }
+            if (_options.is_metricscalculation()) {
+                logger.info("\n");
+                logger.info("///////////////////////////////////////////////////////////");
+                logger.info("///////////////   Metrics Calculation  ////////////////////");
+                logger.info("///////////////////////////////////////////////////////////\n");
+
+                ArrayList<Double> metrics = metricsCalculator(lc, gate_library);
+
+                tmpScore.add(a, metrics.get(0));
+                tmpCorrectness.add(a, metrics.get(1));
+                tmpSNR.add(a, metrics.get(2));
+                tmpDSNR.add(a, metrics.get(3));
+            }
+            //********************************
+        }
+
+        metricsResult.put("score", tmpScore);
+        metricsResult.put("correctness", tmpCorrectness);
+        metricsResult.put("snr", tmpSNR);
+        metricsResult.put("dsnr", tmpDSNR);
+
+        try {
+            CelloAPI.jsonWrite(metricsResult, metricsResultPath);
+        } catch (Exception ex) {
+            logger.info("Exception: " + ex.getMessage());
         }
 
         if (_result_status != ResultStatus.roadblocking_inputs) {
             _result_status = ResultStatus.success;
         }
-
-        //@arashk
-        if (_options.is_localoptimize()) {
-            this.localOptimize();
-        }
-        if (_options.get_metricscalculation()>0) {
-            logger.info("\n");
-            logger.info("///////////////////////////////////////////////////////////");
-            logger.info("///////////////   Metrics Calculation  ////////////////////");
-            logger.info("///////////////////////////////////////////////////////////\n");
-            metricsCalculator(unique_lcs, gate_library, _options.get_metricscalculation());
-            logger.info("\n");
-            logger.info("///////////////////////////////////////////////////////////");
-            logger.info("///////////////   Metrics Calculation done  ///////////////");
-            logger.info("///////////////////////////////////////////////////////////\n");
-        }
-        //********************************
 
         logger.info("\n");
         logger.info("///////////////////////////////////////////////////////////");
@@ -1202,7 +1222,7 @@ public class DNACompiler {
         String sbol_plasmid_name = lc.get_assignment_name() + "_PCOMPLETE";
 
         String sbol_document = sbol_circuit_writer.writeSBOLComplete(sbol_filename, lc, plasmidCircuit, plasmidOutput, sbol_plasmid_name, _options);
-        
+
         //********************************
         PlasmidUtil.resetParentGates(lc);
 
@@ -1562,12 +1582,15 @@ public class DNACompiler {
         }
 
         NetSynth netsynth = new NetSynth("netSynth", Utilities.getNetSynthResourcesFilepath(), _options.get_output_directory());
-        
+
         GW = netsynth.runNetSynth(
                 verilog_filepath,
                 new ArrayList<NetSynthSwitch>(),
                 motifLibrary
-        );
+        ); 
+        
+        //_options.set_synthesis("originalstructural");
+        //_options.set_circuit_type(CircuitType.sequential);
 
         netsynth.cleanDirectory();
 
@@ -1905,84 +1928,47 @@ public class DNACompiler {
         logger.info("///////////////////////////////////////////////////////////\n");
     }
 
-    public void metricsCalculator(ArrayList<LogicCircuit> unique_lcs, GateLibrary gate_library, int number) {
+    public ArrayList<Double> metricsCalculator(LogicCircuit lc, GateLibrary gate_library) {
 
-        String resultPath = _options.get_output_directory() + _options.get_jobID() + "_metricscalculation_output.txt";
-        JSONObject result = new JSONObject();
-        JSONArray tmpScore = new JSONArray();
-        JSONArray tmpCorrectness = new JSONArray();
-        JSONArray tmpSNR = new JSONArray();
-        JSONArray tmpDSNR = new JSONArray();
+        ArrayList<Double> result = new ArrayList();
 
-        Set<Double> scores = new HashSet();
+        //The following lines are since the histogram values may not have been calculated, they are now!
+        /*String file_name_default = _options.get_home() + _options.get_datapath() + "default_histogram.txt";
+        InputOutputGateReader.makeHistogramsforInputRPUs(gate_library, file_name_default);
 
-        int i = 0;
-        for (LogicCircuit lc : unique_lcs) {
-            if (!scores.contains(lc.get_scores().get_score())) {
-                scores.add(lc.get_scores().get_score());
-            } else {
-                continue;
-            }
+        LogicCircuitUtil.setInputRPU(lc, gate_library);
 
-            if (i >= number) {
-                break;
-            }
-            logger.info("Assignment No: " + (i + 1));
-
-            LogicCircuit lc_local = new LogicCircuit(lc);
-
-            String file_name_default = _options.get_home() + _options.get_datapath() + "default_histogram.txt";
-            InputOutputGateReader.makeHistogramsforInputRPUs(gate_library, file_name_default);
-
-            LogicCircuitUtil.setInputRPU(lc_local, gate_library);
-
-            for (Gate g : lc_local.get_Gates()) {
-                g.get_histogram_bins().init();
-            }
-
-            for (Gate g : lc_local.get_logic_gates()) {
-
-                HistogramUtil.interpolateTransferFunctionTitrations(g.Name, gate_library);
-
-                g.set_xfer_hist(gate_library.get_GATES_BY_NAME().get(g.Name).get_xfer_hist());
-
-                //logger.info("histogram interpolation for " + g.Name + " " + g.get_xfer_hist().get_xfer_interp().size() + " " + g.get_xfer_hist().get_xfer_interp().get(0).length);
-            }
-
-            Evaluate.evaluateCircuitHistogramOverlap(lc_local, gate_library, _options);
-            double score = lc_local.get_scores().get_score();
-            evaluateCircuitCorrectness(lc_local, _options);
-            double correctness = lc_local.get_scores().get_correctness();
-            evaluateCircuitSNR(lc_local, _options);
-            double snr = lc_local.get_scores().get_snr();
-            double dsnr = lc_local.get_scores().get_dsnr();
-
-            logger.info("Score: " + score);
-            logger.info("Measure of correctness: " + correctness);
-            logger.info("Output Signal-to-Noise Ratio: " + snr);
-            logger.info("Differential Signal-to-Noise Ratio " + dsnr);
-            logger.info("");
-
-            //JSONObject result_local = new JSONObject();
-            tmpScore.add(i, score);
-            tmpCorrectness.add(i, correctness);
-            tmpSNR.add(i, snr);
-            tmpDSNR.add(i, dsnr);
-            i++;
-            //result.put(i, result_local);
+        for (Gate g : lc.get_Gates()) {
+            g.get_histogram_bins().init();
         }
 
-        result.put("score", tmpScore);
-        result.put("correctness", tmpCorrectness);
-        result.put("snr", tmpSNR);
-        result.put("dsnr", tmpDSNR);
+        for (Gate g : lc.get_logic_gates()) {
 
-        try {
-            CelloAPI.jsonWrite(result, resultPath);
-        } catch (Exception ex) {
-            logger.info("Exception: " + ex.getMessage());
+            HistogramUtil.interpolateTransferFunctionTitrations(g.Name, gate_library);
+
+            g.set_xfer_hist(gate_library.get_GATES_BY_NAME().get(g.Name).get_xfer_hist());
+
+            //logger.info("histogram interpolation for " + g.Name + " " + g.get_xfer_hist().get_xfer_interp().size() + " " + g.get_xfer_hist().get_xfer_interp().get(0).length);
         }
 
+        Evaluate.evaluateCircuitHistogramOverlap(lc, gate_library, _options);*/
+        double score = lc.get_scores().get_score();
+        evaluateCircuitCorrectness(lc, _options);
+        double correctness = lc.get_scores().get_correctness();
+        evaluateCircuitSNR(lc, _options);
+        double snr = lc.get_scores().get_snr();
+        double dsnr = lc.get_scores().get_dsnr();
+
+        logger.info("Score: " + score);
+        result.add(score);
+        logger.info("Measure of correctness: " + correctness);
+        result.add(correctness);
+        logger.info("Output Signal-to-Noise Ratio: " + snr);
+        result.add(snr);
+        logger.info("Differential Signal-to-Noise Ratio " + dsnr);
+        result.add(dsnr);
+        logger.info("");
+        return result;
     }
     //**********************************************************************
 

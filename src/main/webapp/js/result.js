@@ -510,7 +510,7 @@ function showMetrics() {
         },
         type: 'scatter'
     };
-    
+
     var scoreStat = {
         y: radiusScore,
         x: x,
@@ -537,7 +537,7 @@ function showMetrics() {
             opacity: 0.7
         },
         type: 'scatter'
-        //, yaxis: 'y2'
+                //, yaxis: 'y2'
     };
 
     var dsnrStat = {
@@ -552,9 +552,9 @@ function showMetrics() {
             opacity: 0.7
         },
         type: 'scatter'
-        //, yaxis: 'y3'
+                //, yaxis: 'y3'
     };
-    
+
     var correctnessStat = {
         y: angle,
         x: x,
@@ -567,7 +567,7 @@ function showMetrics() {
             opacity: 0.7
         },
         type: 'scatter'
-        //, yaxis: 'y4'
+                //, yaxis: 'y4'
     };
 
     var traceDummy = {
@@ -604,47 +604,68 @@ function showMetrics() {
         angularaxis: {tickcolor: 'rgb(253,253,253)',
             range: [0, 360]
         },
-        direction: 'counterclockwise'
+        direction: 'counterclockwise'/*,
+        hovermode: 'closest'*/
     };
-    
+
     var layoutStat = {
         title: 'Various Metrics vs. Assignment',
         font: {size: 15},
         plot_bgcolor: 'rgb(223, 223, 223)',
         paper_bgcolor: 'rgb(245, 245, 245)'/*,
-        yaxis: {
-    title: 'Score',
-    titlefont: {color: 'rgb(230,171,2)'},
-    tickfont: {color: 'rgb(230,171,2)'}
-  },
-  yaxis2: {
-    title: 'SNR',
-    titlefont: {color: 'rgb(100,1,200)'},
-    tickfont: {color: 'rgb(100,1,200)'},
-    overlaying: 'y',
-    side: 'right'
-  },
-  yaxis3: {
-    title: 'DSNR',
-    titlefont: {color: 'rgb(30,171,100)'},
-    tickfont: {color: 'rgb(30,171,100)'},
-    overlaying: 'y',
-    side: 'right'
-  },
-  yaxis4: {
-    title: 'Correctness',
-    titlefont: {color: 'rgb(30,10,100)'},
-    tickfont: {color: 'rgb(30,10,100)'},
-    overlaying: 'y',
-    side: 'left',
-    position: -0.15,
-    anchor: 'free'
-  }*/
+        hovermode: 'closest'/*,
+         yaxis: {
+         title: 'Score',
+         titlefont: {color: 'rgb(230,171,2)'},
+         tickfont: {color: 'rgb(230,171,2)'}
+         },
+         yaxis2: {
+         title: 'SNR',
+         titlefont: {color: 'rgb(100,1,200)'},
+         tickfont: {color: 'rgb(100,1,200)'},
+         overlaying: 'y',
+         side: 'right'
+         },
+         yaxis3: {
+         title: 'DSNR',
+         titlefont: {color: 'rgb(30,171,100)'},
+         tickfont: {color: 'rgb(30,171,100)'},
+         overlaying: 'y',
+         side: 'right'
+         },
+         yaxis4: {
+         title: 'Correctness',
+         titlefont: {color: 'rgb(30,10,100)'},
+         tickfont: {color: 'rgb(30,10,100)'},
+         overlaying: 'y',
+         side: 'left',
+         position: -0.15,
+         anchor: 'free'
+         }*/
     };
 
 
-    Plotly.newPlot('correctness', data, layout);
-    Plotly.newPlot('statistics', dataStat, layoutStat);
+    var correctnessPlot = document.getElementById('correctness');
+    var statisticsPlot = document.getElementById('statistics');
+    Plotly.newPlot(correctnessPlot, data, layout);
+    Plotly.newPlot(statisticsPlot, dataStat, layoutStat);
+
+    correctnessPlot.on('plotly_click', function () {
+        alert('Click on Correctness Plot!');
+    });
+
+    statisticsPlot.on('plotly_click', function (data) {
+        var pt = '';
+        for (var i = 0; i < data.points.length; i++) {
+            pt = data.points[i].x;
+        }
+        show(2);
+        res.result_tab = 2;
+        //alert('Closest point clicked:\n\n' + pts);
+        document.getElementById("show_nA").selectedIndex = pt.toString();
+        res.show_nA = $('#show_nA').val();
+        set_filepaths();
+    });
     //Plotly.newPlot('correctnessScore', dataScore, layout);
     //Plotly.newPlot('correctnessSNR', dataSNR, layout);
     //Plotly.newPlot('correctnessDSNR', dataDSNR, layout);
