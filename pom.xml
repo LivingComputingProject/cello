@@ -232,6 +232,11 @@
             <type>jar</type>
         </dependency>
 
+        <dependency>
+        	<groupId>com.google.guava</groupId>
+        	<artifactId>guava-gwt</artifactId>
+        	<version>23.0</version>
+        </dependency>
     </dependencies>
 
 
