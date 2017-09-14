@@ -39,12 +39,12 @@ public class LogicCircuit{
      * Constructor to make LogicCircuit from DAGW (dag = abstract circuit)
      *
      */
-    public LogicCircuit(ArrayList<Gate> Gates, ArrayList<Wire> Wires){ // used to make abstract circuit from frontend handoff
+    public LogicCircuit(ArrayList<Gate> gates, ArrayList<Wire> wires){ // used to make abstract circuit from frontend handoff
 
         _Gates = new ArrayList<Gate>();
         _Wires = new ArrayList<Wire>();
-        for(Gate g:Gates) { _Gates.add(g); }
-        for(Wire w:Wires) { _Wires.add(w); }
+        for(Gate g:gates) { _Gates.add(g); }
+        for(Wire w:wires) { _Wires.add(w); }
 
         reconnectCircuit();
         categorizeGates();
