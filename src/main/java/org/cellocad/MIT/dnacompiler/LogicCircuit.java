@@ -7,6 +7,9 @@ import lombok.Getter;
 import lombok.Setter;
 import org.cellocad.MIT.dnacompiler.Gate.GateType;
 
+import com.google.common.graph.GraphBuilder;
+import com.google.common.graph.MutableGraph;
+
 import java.util.*;
 
 //import org.sbolstandard.core2.ComponentDefinition;
@@ -23,6 +26,8 @@ import java.util.*;
  */
 public class LogicCircuit{
 
+    private MutableGraph<Gate> graph;
+
     /**
      *
      * Default constructor
@@ -31,6 +36,7 @@ public class LogicCircuit{
     public LogicCircuit(){
         _Wires = new ArrayList<Wire>();
         _Gates = new ArrayList<Gate>();
+        graph = GraphBuilder.directed().build();
     }
 
 
@@ -43,8 +49,18 @@ public class LogicCircuit{
 
         _Gates = new ArrayList<Gate>();
         _Wires = new ArrayList<Wire>();
-        for(Gate g:gates) { _Gates.add(g); }
-        for(Wire w:wires) { _Wires.add(w); }
+
+        graph = GraphBuilder.directed().build();
+
+        for (Gate g : gates) {
+            _Gates.add(g);
+            graph.addNode(g);
+        }
+
+        for (Wire w : wires) {
+            _Wires.add(w);
+            graph.putEdge(w.from, w.to);
+        }
 
         reconnectCircuit();
         categorizeGates();

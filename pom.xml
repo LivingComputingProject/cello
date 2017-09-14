@@ -218,7 +218,7 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>17.0</version>
+            <version>23.0</version>
         </dependency>
         <dependency>
             <groupId>org.codehaus.jackson</groupId>
@@ -232,11 +232,6 @@
             <type>jar</type>
         </dependency>
 
-        <dependency>
-        	<groupId>com.google.guava</groupId>
-        	<artifactId>guava-gwt</artifactId>
-        	<version>23.0</version>
-        </dependency>
     </dependencies>
 
 
