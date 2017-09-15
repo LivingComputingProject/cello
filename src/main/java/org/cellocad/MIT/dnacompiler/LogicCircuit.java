@@ -661,26 +661,30 @@ public class LogicCircuit {
         return gates;
     }
 
-
-    public HashMap<GateType, ArrayList<Gate>> get_logic_gate_types() {
-
-        HashMap<GateType, ArrayList<Gate>> logic_gate_types = new HashMap<GateType, ArrayList<Gate>>();
-
-        for(GateType gtype: _gate_types.keySet()) {
-
-            if(gtype != GateType.INPUT && gtype != GateType.OUTPUT && gtype != GateType.OUTPUT_OR ) {
-
-                logic_gate_types.put(gtype, _gate_types.get(gtype));
-
-            }
-
-        }
-
-        return logic_gate_types;
-    }
-
+    /**
+	 * @return all the nodes in the graph
+	 */
     public Set<Gate> getNodes() {
         return graph.nodes();
+    }
+
+    /**
+	 * @return all the nodes (gates) in the graph that are not of type
+	 * INPUT, OUTPUT, or OUTPUT_OR
+	 */
+    public Set<Gate> getGates() {
+        Set<Gate> nodes = graph.nodes();
+
+        for ( Gate gate : nodes ) {
+            Gate.GateType gateType = gate.getType();
+            if ( gateType == GateType.INPUT &&
+                 gateType == GateType.OUTPUT &&
+                 gateType == GateType.OUTPUT_OR ) {
+                nodes.remove(gate);
+            }
+        }
+
+        return nodes;
     }
 
     public Set<EndpointPair<Gate>> getEdges() {
