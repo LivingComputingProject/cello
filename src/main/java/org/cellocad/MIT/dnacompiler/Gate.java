@@ -353,7 +353,22 @@ public class Gate {
     
 //    @Getter @Setter private boolean _tp_exists = false;
 
-    @Getter @Setter private int _distance_to_input = -1;
+    /**
+	 * @return the type of the gate, an element of the GateType enum
+	 */
+	public GateType getType() {
+		return type;
+	}
+
+	/**
+	 * @param type the new GateType
+	 */
+	public void setType(GateType type) {
+		this.type = type;
+	}
+
+
+	@Getter @Setter private int _distance_to_input = -1;
 
     //TODO get rid of this one
     @Getter @Setter private int _farthest_dist2in = 1;
