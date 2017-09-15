@@ -289,7 +289,10 @@ public class LogicCircuit {
         }
         s += "\n";
 
-        for(int i=0; i<get_Gates(GateType.OUTPUT, GateType.OUTPUT_OR).get(0).get_logics().size(); ++i){
+        Set<Gate.GateType> outputTypes = new HashSet<>(Arrays.asList(GateType.OUTPUT,
+                                                                     GateType.OUTPUT_OR));
+        Set<Gate> gates = getGatesByType(outputTypes);
+        for(int i=0; i<gates.iterator().next().get_logics().size(); ++i){
             s += String.format("%14s", this.getLogicRow(i)) + "\t";
 
             for(int j=this.get_Gates().size()-1; j>=0; --j) {
@@ -625,46 +628,10 @@ public class LogicCircuit {
     //
     /////////////////////////
 
-
-
-    public ArrayList<Gate> get_Gates(GateType gtype) {
-
-        ArrayList<Gate> gates = new ArrayList<Gate>();
-
-        for(Gate g: _Gates) {
-
-            if(g.type == gtype) {
-
-                gates.add(g);
-
-            }
-        }
-
-        return gates;
-
-    }
-
-    public ArrayList<Gate> get_Gates(GateType gtype1, GateType gtype2) {
-
-        ArrayList<Gate> gates = new ArrayList<Gate>();
-
-        for(Gate g: _Gates) {
-
-            if(g.type == gtype1 || g.type == gtype2) {
-
-                gates.add(g);
-
-            }
-
-        }
-
-        return gates;
-    }
-
     /**
      * @return all the nodes in the graph
      */
-    public Set<Gate> getNodes() {
+    public Set<Gate> getGates() {
         return graph.nodes();
     }
 

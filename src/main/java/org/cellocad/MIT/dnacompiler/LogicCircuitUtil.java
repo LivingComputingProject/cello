@@ -358,7 +358,7 @@ public class LogicCircuitUtil{
 
         HashMap<GateType, Integer> assigned_groups = new HashMap<GateType, Integer>();
 
-        Set<Gate> gates = lc.getNodes();
+        Set<Gate> gates = lc.getGates();
         Set<Gate.GateType> inoutTypes = new HashSet<>(Arrays.asList(GateType.INPUT,
                                                                     GateType.OUTPUT,
                                                                     GateType.OUTPUT_OR));
