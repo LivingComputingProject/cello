@@ -662,29 +662,28 @@ public class LogicCircuit {
     }
 
     /**
-	 * @return all the nodes in the graph
-	 */
+     * @return all the nodes in the graph
+     */
     public Set<Gate> getNodes() {
         return graph.nodes();
     }
 
     /**
-	 * @return all the nodes (gates) in the graph that are not of type
-	 * INPUT, OUTPUT, or OUTPUT_OR
-	 */
-    public Set<Gate> getGates() {
+     * @param types
+     * @return the gates with types in {types}
+     */
+    public Set<Gate> getGatesByType( Set<Gate.GateType> types ) {
         Set<Gate> nodes = graph.nodes();
+        Set<Gate> gates = new HashSet<>();
 
         for ( Gate gate : nodes ) {
             Gate.GateType gateType = gate.getType();
-            if ( gateType == GateType.INPUT &&
-                 gateType == GateType.OUTPUT &&
-                 gateType == GateType.OUTPUT_OR ) {
-                nodes.remove(gate);
+            if ( types.contains(gateType) ) {
+                gates.add(gate);
             }
         }
 
-        return nodes;
+        return gates;
     }
 
     public Set<EndpointPair<Gate>> getEdges() {
