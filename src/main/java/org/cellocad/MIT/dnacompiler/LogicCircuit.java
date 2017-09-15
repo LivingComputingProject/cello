@@ -9,6 +9,7 @@ import org.cellocad.MIT.dnacompiler.Gate.GateType;
 
 import com.google.common.graph.GraphBuilder;
 import com.google.common.graph.MutableGraph;
+import com.google.common.graph.EndpointPair;
 
 import java.util.*;
 
@@ -24,7 +25,7 @@ import java.util.*;
  * Assigned LogicCircuits are ranked by score.
  *
  */
-public class LogicCircuit{
+public class LogicCircuit {
 
     private MutableGraph<Gate> graph;
 
@@ -46,11 +47,7 @@ public class LogicCircuit{
      *
      */
     public LogicCircuit(ArrayList<Gate> gates, ArrayList<Wire> wires){ // used to make abstract circuit from frontend handoff
-
-        _Gates = new ArrayList<Gate>();
-        _Wires = new ArrayList<Wire>();
-
-        graph = GraphBuilder.directed().build();
+        this();
 
         for (Gate g : gates) {
             _Gates.add(g);
@@ -76,6 +73,8 @@ public class LogicCircuit{
     public LogicCircuit(LogicCircuit lc){ // copy constructor
         _Gates = lc.get_Gates();
         _Wires = lc.get_Wires();
+
+        graph = GraphBuilder.directed().build();        
 
         _index = _number_of_logic_circuits;
         _number_of_logic_circuits++;
@@ -680,6 +679,13 @@ public class LogicCircuit{
         return logic_gate_types;
     }
 
+    public Set<Gate> getNodes() {
+        return graph.nodes();
+    }
+
+    public Set<EndpointPair<Gate>> getEdges() {
+        return graph.edges();
+    }
 
     /////////////////////////
     //
