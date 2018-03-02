@@ -14,6 +14,7 @@ import org.cidarlab.eugene.util.DeviceUtils;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -256,7 +257,7 @@ public class EugeneAdaptor {
 	 * @param options
 	 * @return
 	 */
-	public String generateEugeneFile(ArrayList<Gate> gates, String filename,
+	public String generateEugeneFile(List<Gate> gates, String filename,
 			PartLibrary part_library, Args options) {
 
 		if (options.is_eugene_scars()) {
@@ -274,7 +275,7 @@ public class EugeneAdaptor {
 		HashSet<String> part_set = new HashSet<String>();
 
 		// map used instead of ArrayList of ArrayLists to save each txn unit
-		HashMap<String, ArrayList<Part>> txn_units = new HashMap<>();
+		HashMap<String, List<Part>> txn_units = new HashMap<>();
 
 		for (Gate g : gates) {
 
@@ -296,7 +297,7 @@ public class EugeneAdaptor {
 		}
 
 
-		for (ArrayList<Part> txn_unit : txn_units.values()) {
+		for (List<Part> txn_unit : txn_units.values()) {
 
 			// set the part types and the parts
 
@@ -367,7 +368,7 @@ public class EugeneAdaptor {
 		// define each gate device
 
 		for (String regulator : txn_units.keySet()) {
-			ArrayList<Part> txn_unit = txn_units.get(regulator);
+			List<Part> txn_unit = txn_units.get(regulator);
 
 			eug += "Device " + regulator + "_device" + "(\n";
 			int gi = 0;
@@ -394,7 +395,7 @@ public class EugeneAdaptor {
 		// define rules for each gate device
 
 		for (String regulator : txn_units.keySet()) {
-			ArrayList<Part> txn_unit = txn_units.get(regulator);
+			List<Part> txn_unit = txn_units.get(regulator);
 
 			ArrayList<String> names_in_this_device = new ArrayList<String>();
 

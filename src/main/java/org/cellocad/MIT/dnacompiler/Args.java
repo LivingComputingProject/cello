@@ -8,6 +8,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.io.File;
+import java.net.URL;
+import java.net.MalformedURLException;
 import java.util.ArrayList;
 
 /**
@@ -34,8 +36,11 @@ public class Args {
     @Getter @Setter private boolean _NOTequalsNOR1 = true;
 
 	// use synbiohub to import parts
-	@Getter @Setter private boolean _synbiohub_parts = false;
+	@Getter @Setter private boolean _synbiohub_parts = true;
 
+	// synbiohub url
+	@Getter @Setter private URL _synbiohub_url;
+	
     // permute all input assignments
     // e.g.
     // in1, in2 = pTac, pTet
@@ -101,7 +106,12 @@ public class Args {
 
 
     public Args() {
-
+		try {
+			_synbiohub_url = new URL("http://synbiohub.utah.edu");
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+		}
+	
         String _filepath = Args.class.getClassLoader().getResource(".").getPath();
 
         if (_filepath.contains("/target/")) {

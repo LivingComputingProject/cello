@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.net.URISyntaxException;
 
 import javax.xml.namespace.QName;
 
@@ -51,15 +52,18 @@ public class SynBioHubAdaptor {
 
     private SynBioHubFrontend sbh;
 
-    public SynBioHubAdaptor() throws SynBioHubException, IOException {
+    public SynBioHubAdaptor(URL url) throws SynBioHubException, IOException {
         partLibrary = new PartLibrary();
         gateLibrary = new GateLibrary(2,1);
 
-        sbh = new SynBioHubFrontend("https://synbiohub.programmingbiology.org");
+        sbh = new SynBioHubFrontend(url.toString());
 
-        URI u = URI.create("https://synbiohub.programmingbiology.org/public/Cello_Parts/Cello_Parts_collection/1");
-
-        celloSBOL = sbh.getSBOL(u);
+		try {
+			URI u = new URL(url,"public/Cello_Parts/Cello_Parts_collection/1").toURI();
+			celloSBOL = sbh.getSBOL(u);
+		} catch (URISyntaxException e) {
+			e.printStackTrace();
+		}
 
         createLibraries();
     }

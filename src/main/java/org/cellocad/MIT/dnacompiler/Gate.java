@@ -5,6 +5,7 @@ package org.cellocad.MIT.dnacompiler;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.HashMap;
 import org.sbolstandard.core2.ComponentDefinition;
 
@@ -551,7 +552,7 @@ public class Gate {
 
     //a transcription unit is an array of Parts.
     //the set of transcriptional units for a circuit is an array of an array of Parts.
-    @Getter @Setter private ArrayList<ArrayList<Part>> _txn_units = new ArrayList<ArrayList<Part>>();
+    @Getter @Setter private List<List<Part>> _txn_units = new ArrayList<>();
 
     //score
     /**

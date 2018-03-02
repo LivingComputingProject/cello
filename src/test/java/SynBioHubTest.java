@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.net.URL;
+import java.net.MalformedURLException;
 import java.util.Set;
 
 import org.cellocad.MIT.dnacompiler.Args;
@@ -33,8 +35,16 @@ public class SynBioHubTest {
         PartLibrary partLibrary = ucfAdaptor.createPartLibrary(ucf);
         HashMap<String,Part> ucfParts = partLibrary.get_ALL_PARTS();
         Set<String> ucfPartNames = ucfParts.keySet();
-
-        SynBioHubAdaptor sbhAdaptor = new SynBioHubAdaptor();
+		
+		URL sbhUrl = null;
+		try {
+			sbhUrl = new URL("https://synbiohub.utah.edu/");
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+		}
+		System.out.println("starting sbhdaptor...");
+        SynBioHubAdaptor sbhAdaptor = new SynBioHubAdaptor(sbhUrl);
+		System.out.println("started");
         HashMap<String,Part> sbhParts = sbhAdaptor.getPartLibrary().get_ALL_PARTS();
         Set<String> sbhPartNames = sbhParts.keySet();
 
@@ -53,7 +63,13 @@ public class SynBioHubTest {
         UCF ucf = ucfReader.readAllCollections("resources/UCF/Eco1C1G1T0.UCF.json");
         GateLibrary ucfGateLibrary = ucfAdaptor.createGateLibrary(ucf,2,1,new Args());
 
-        SynBioHubAdaptor sbhAdaptor = new SynBioHubAdaptor();
+		URL sbhUrl = null;
+		try {
+			sbhUrl = new URL("https://synbiohub.utah.edu");
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+		}
+        SynBioHubAdaptor sbhAdaptor = new SynBioHubAdaptor(sbhUrl);
         GateLibrary sbhGateLibrary = sbhAdaptor.getGateLibrary();
 
         Set<String> ucfGateNames = ucfGateLibrary.get_GATES_BY_NAME().keySet();
@@ -75,7 +91,13 @@ public class SynBioHubTest {
 			ucfPromoterMap.put(gateName,ucfGatesMap.get(gateName).get_regulable_promoter().get_name());
 		}
 
-		SynBioHubAdaptor sbhAdaptor = new SynBioHubAdaptor();
+		URL sbhUrl = null;
+		try {
+			sbhUrl = new URL("https://synbiohub.utah.edu");
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+		}
+        SynBioHubAdaptor sbhAdaptor = new SynBioHubAdaptor(sbhUrl);
 		PartLibrary sbhPartLibrary = sbhAdaptor.getPartLibrary();
 		GateLibrary sbhGateLibrary = sbhAdaptor.getGateLibrary();
 		sbhAdaptor.setGateParts(sbhGateLibrary, sbhPartLibrary);
@@ -107,7 +129,13 @@ public class SynBioHubTest {
 			ucfEquations.add(ucfGatesMap.get(gateName).get_equation());
 		}
 
-		SynBioHubAdaptor sbhAdaptor = new SynBioHubAdaptor();
+		URL sbhUrl = null;
+		try {
+			sbhUrl = new URL("https://synbiohub.utah.edu");
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+		}
+        SynBioHubAdaptor sbhAdaptor = new SynBioHubAdaptor(sbhUrl);
 		PartLibrary sbhPartLibrary = sbhAdaptor.getPartLibrary();
 		GateLibrary sbhGateLibrary = sbhAdaptor.getGateLibrary();
 		sbhAdaptor.setResponseFunctions(sbhGateLibrary);

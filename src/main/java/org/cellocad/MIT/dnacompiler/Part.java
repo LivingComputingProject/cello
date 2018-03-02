@@ -63,7 +63,7 @@ public class Part {
      */
     public Part(String name, String type, String seq){
         setPartTypeColors();
-        _name = name;
+        this._name = name;
         _type = type;
         _direction = "+";
         if(PART_TYPE_COLORS.containsKey(type)) {
@@ -116,7 +116,8 @@ public class Part {
     /////////////////////////
 
     @Getter @Setter private String _name = "";
-    @Getter @Setter private String _type = "";
+
+	@Getter @Setter private String _type = "";
 
     //"+" or "-"
     @Getter @Setter private String _direction = "";

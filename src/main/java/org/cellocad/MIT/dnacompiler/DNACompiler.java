@@ -20,6 +20,7 @@ import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
+import org.cellocad.BU.export.SBOLGenerator;
 import org.cellocad.BU.netsynth.NetSynth;
 import org.cellocad.BU.netsynth.NetSynthSwitch;
 import org.cellocad.BU.netsynth.Utilities;
@@ -44,7 +45,8 @@ import org.json.JSONException;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.ParseException;
 import org.synbiohub.frontend.SynBioHubException;
-
+import org.sbolstandard.core2.SBOLValidationException;
+import org.sbolstandard.core2.SBOLDocument;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -393,10 +395,13 @@ public class DNACompiler {
          * UCFReader: reads .json text file and creates UCF object.
          * UCFAdaptor: returns java data types from the UCF object.
          */
-
+		logger.info("\n");
+        logger.info("///////////////////////////////////////////////////////////");
+        logger.info("//////////   Building SynBioHub parts   ///////////////////");
+        logger.info("///////////////////////////////////////////////////////////\n");
 		if (_options.is_synbiohub_parts()) {
 			try {
-				this.setSynBioHubAdaptor(new SynBioHubAdaptor());
+				this.setSynBioHubAdaptor(new SynBioHubAdaptor(_options.get_synbiohub_url()));
 			} catch (IOException | SynBioHubException e) {
 				e.printStackTrace();
 			}
@@ -1355,6 +1360,17 @@ public class DNACompiler {
 
             String sbol_document = sbol_circuit_writer.writeSBOLCircuit(sbol_filename, lc, plasmid, sbol_plasmid_name, _options);
         }
+
+		SBOLDocument sbolDocument = null;
+		try {
+			sbolDocument = SBOLGenerator.generateSBOLDocument(lc, this.getSynBioHubAdaptor());
+		} catch (SynBioHubException | SBOLValidationException e) {
+			e.printStackTrace();
+		}
+		if (sbolDocument != null) {
+			String sbolFilename = lc.get_assignment_name() + "_sbol_circuit.xml";
+			Util.fileWriter(sbolFilename, sbolDocument.toString(), false);
+		}
 
         PlasmidUtil.resetParentGates(lc);
 
