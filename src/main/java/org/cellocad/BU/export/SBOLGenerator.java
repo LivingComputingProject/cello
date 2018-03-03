@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2017 Boston University (BU)
+ * Copyright (C) 2018 Boston University (BU)
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -44,6 +44,13 @@ import org.cellocad.MIT.dnacompiler.Part;
 import org.cellocad.adaptors.synbiohubadaptor.SynBioHubAdaptor;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Generate an SBOL document based on transcriptional units.
+ *
+ * @author: Timothy Jones
+ * @date: Mar 2, 2018
+ *
+ */
 public class SBOLGenerator {
 
 	public static SBOLDocument generateSBOLDocument(LogicCircuit lc, SynBioHubAdaptor sbhAdaptor)

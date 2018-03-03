@@ -1,3 +1,23 @@
+/**
+ * Copyright (C) 2018 Boston University (BU)
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package org.cellocad.adaptors.synbiohubadaptor;
 
 import java.io.IOException;
@@ -43,7 +63,9 @@ import com.google.gson.JsonParser;
 /**
  * An adaptor to build the parts library from SynBioHub.
  *
- * @author: Tim Jones
+ * @author: Timothy Jones
+ * @date: Mar 2, 2018
+ *
  */
 public class SynBioHubAdaptor {
     private SBOLDocument celloSBOL;
@@ -75,33 +97,13 @@ public class SynBioHubAdaptor {
 
         Set<ComponentDefinition> celloCD = celloSBOL.getComponentDefinitions();
 
-        // Set<ModuleDefinition> celloMD = celloSBOL.getModuleDefinitions();
-        // System.out.println(celloMD.size());
-        // System.out.println(celloMD.iterator().next().getFunctionalComponents());
-		for (GenericTopLevel tl : celloSBOL.getGenericTopLevels()) {
-			String name = tl.getName();
-			if (name.contains("cytometry")) {
-				cytometryAttachments.put(name.substring(0,name.length()-15),tl.getIdentity());
-			}
-			if (name.contains("toxicity")) {
-				toxicityAttachments.put(name.substring(0,name.length()-14),tl.getIdentity());
-			}
-			// URI attachmentUri = a.getIdentity();
-			// String fileName = sbh.getSBOL(attachmentUri).getGenericTopLevel(attachmentUri).getName();
-			// if (fileName.contains("toxicity")) {
-			// 	setGateToxicityTable(attachmentUri, g);
-			// }
-			// if (fileName.contains("cytometry")) {
-			// 	setGateCytometry(attachmentUri, g);
-			// }
-		}
         for (ComponentDefinition cd : celloCD) {
             // i dont know why there would be more than one type per
             // part in the cello parts there is one type per part, so
             // just grab the first type below
             URI type = cd.getTypes().iterator().next();
 
-            if (type.equals(URI.create("http://www.biopax.org/release/biopax-level3.owl#DnaRegion"))) {
+            if (type.equals(ComponentDefinition.DNA)) {
                 URI role = cd.getRoles().iterator().next();
 
                 if (role.equals(SequenceOntology.ENGINEERED_REGION)) { // if the CD is a gate
@@ -111,47 +113,35 @@ public class SynBioHubAdaptor {
                     g.setName(cd.getName());
 					g.setComponentDefinition(cd);
 
-                    // if a gate on synbiohub ever had more than one
-                    // toxicity attachment, the last one would be what
-                    // the gate gets here.
-					// for (Attachment a : cd.getAttachments()) {
-					// 	URI attachmentUri = a.getIdentity();
-					// 	String fileName = sbh.getSBOL(attachmentUri).getGenericTopLevel(attachmentUri).getName();
-					// 	if (fileName.contains("toxicity")) {
-					// 		setGateToxicityTable(attachmentUri, g);
-					// 	}
-					// 	if (fileName.contains("cytometry")) {
-					// 		setGateCytometry(attachmentUri, g);
-					// 	}
-					// }
-
                     for (Annotation a : cd.getAnnotations()) {
                         String annotationType = a.getQName().getLocalPart();
                         if (annotationType == "gate_type") {
                             g.setType(Gate.GateType.valueOf(a.getStringValue()));
                         }
-                        if (annotationType == "group-name") {
+                        if (annotationType == "group_name") {
                             g.setGroup(a.getStringValue());
                         }
                         if (annotationType == "family") {
                             g.setSystem(a.getStringValue());
                         }
-                        if (annotationType == "gate-color-hexcode") { // color
+                        if (annotationType == "color_hexcode") { // color
                             g.setColorHex(a.getStringValue());
                         }
-						// if (annotationType == "attachment") { // toxicity or cytometry
-                        //     URI attachmentUri = a.getURIValue();
-                        //     String fileName = sbh.getSBOL(attachmentUri).getGenericTopLevel(attachmentUri).getName();
-                        //     if (fileName.contains("toxicity")) {
-                        //         setGateToxicityTable(attachmentUri, g);
-                        //     }
-                        //     if (fileName.contains("cytometry")) {
-                        //         setGateCytometry(attachmentUri, g);
-                        //     }
-                        // }
                     }
-					setGateToxicityTable(toxicityAttachments.get(g.getName()),g);
-					setGateCytometry(cytometryAttachments.get(g.getName()),g);
+                    Set<Attachment> attachments = cd.getAttachments();
+                    if (attachments == null) {
+                        throw new RuntimeException("ComponentDefinition " + cd.getName() + " has no attachments!");
+                    }
+                    for (Attachment a : attachments) {
+                        if (a.getName().contains("toxicity")) {
+                            setGateToxicityTable(a, g);
+                        }
+                        if (a.getName().contains("cytometry")) {
+                            setGateCytometry(a, g);
+                        }
+                    }
+					// setGateToxicityTable(toxicityAttachments.get(g.getName()),g);
+					// setGateCytometry(cytometryAttachments.get(g.getName()),g);
 
                     gateLibrary.get_GATES_BY_NAME().put(g.getName(), g);
                     gateLibrary.setHashMapsForGates();
@@ -172,19 +162,21 @@ public class SynBioHubAdaptor {
                     if (role.equals(URI.create("http://identifiers.org/so/SO:0001953")))
                         roleString = "scar";
 
-                    String seq = cd.getSequences().iterator().next().getElements();
+                    if (cd.getSequences().size() > 0) {
+                        String seq = cd.getSequences().iterator().next().getElements();
 					
-					Part p = new Part(name, roleString, seq, cd.getIdentity());
-					p.setComponentDefinition(cd);
-                    allParts.put(name, p);
+                        Part p = new Part(name, roleString, seq, cd.getIdentity());
+                        p.setComponentDefinition(cd);
+                        allParts.put(name, p);
+                    }
                 }
             }
         }
         partLibrary.set_ALL_PARTS(allParts);
     }
 
-    private void setGateCytometry(URI uri, Gate gate) throws MalformedURLException, IOException {
-        URL url = new URL(uri.toString() + "/download");
+    private void setGateCytometry(Attachment a, Gate gate) throws MalformedURLException, IOException {
+        URL url = new URL(a.getIdentity().toString() + "/download");
         String cytometryJson = getURLContentsAsString(url);
 
         Integer nbins = 0;
@@ -237,8 +229,8 @@ public class SynBioHubAdaptor {
     /**
      * @return the toxicity table
      */
-    private void setGateToxicityTable(URI uri, Gate g) throws MalformedURLException, IOException {
-        URL url = new URL(uri.toString() + "/download");
+    private void setGateToxicityTable(Attachment a, Gate g) throws MalformedURLException, IOException {
+        URL url = new URL(a.getIdentity().toString() + "/download");
         String toxicityJson = getURLContentsAsString(url);
 
         JsonParser parser = new JsonParser();
@@ -280,7 +272,8 @@ public class SynBioHubAdaptor {
 				HashMap<String, ArrayList<Part>> downstream_gate_parts = new HashMap<>();
 
 				//regulable promoter
-
+                System.out.println(gateName);
+                System.out.println(g.getGroup());
 				String promoter_name = "p" + g.getGroup();
 
 				if(!partLibrary.get_ALL_PARTS().containsKey(promoter_name)) {
@@ -295,8 +288,7 @@ public class SynBioHubAdaptor {
 				ArrayList<Part> parts = new ArrayList<Part>();
 
 				for (Component c : components) {
-					String partName = c.getName();
-
+					String partName = c.getDisplayId();
 					if(!partLibrary.get_ALL_PARTS().containsKey(partName)) {
 						throw new IllegalStateException("reading part not found " + partName);
 					}
@@ -320,7 +312,7 @@ public class SynBioHubAdaptor {
 		for (String gateName : gatesMap.keySet()) {
 			Gate g = gatesMap.get(gateName);
 			ComponentDefinition cd = g.getComponentDefinition();
-			String responseFunction = cd.getAnnotation(new QName("http://wiki.synbiohub.org/wiki/Terms/cello#","response-function")).getStringValue();
+			String responseFunction = cd.getAnnotation(new QName("http://cellocad.org/Terms/cello#","response_function")).getStringValue();
 
 			if (gateLibrary.get_GATES_BY_NAME().containsKey(gateName)) {
                 HashMap<String, Double> gate_params = new HashMap<String, Double>();
@@ -329,7 +321,7 @@ public class SynBioHubAdaptor {
                 ArrayList<String> gate_variable_names = new ArrayList<String>();
 
 				for (String name : Arrays.asList("ymax","ymin","K","n")) {
-					QName qName = new QName("http://wiki.synbiohub.org/wiki/Terms/cello#",name);
+					QName qName = new QName("http://cellocad.org/Terms/cello#",name);
 					Annotation a = cd.getAnnotation(qName);
 					gate_params.put(name,Double.valueOf(cd.getAnnotation(qName).getStringValue()));
 				}
