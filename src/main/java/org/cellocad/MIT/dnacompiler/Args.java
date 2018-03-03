@@ -1,16 +1,16 @@
 package org.cellocad.MIT.dnacompiler;
 
+import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
+
 /**
  * Created by Bryan Der on 3/26/14.
  */
 
 import lombok.Getter;
 import lombok.Setter;
-
-import java.io.File;
-import java.net.URL;
-import java.net.MalformedURLException;
-import java.util.ArrayList;
 
 /**
  * Runtime arguments given in the command line
@@ -107,7 +107,7 @@ public class Args {
 
     public Args() {
 		try {
-			_synbiohub_url = new URL("http://synbiohub.utah.edu");
+			_synbiohub_url = new URL("https://synbiohub.utah.edu/");
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
 		}

@@ -20,29 +20,36 @@
  */
 package org.cellocad.BU.export;
 
-import org.sbolstandard.core2.SBOLDocument;
-import org.sbolstandard.core2.Component;
-import org.sbolstandard.core2.AccessType;
-import org.sbolstandard.core2.RestrictionType;
-import org.sbolstandard.core2.ComponentDefinition;
-import org.sbolstandard.core2.Sequence;
-import org.sbolstandard.core2.SequenceAnnotation;
-import org.sbolstandard.core2.SequenceConstraint;
-import org.sbolstandard.core2.SBOLValidationException;
-import org.sbolstandard.core2.SequenceOntology;
-import org.synbiohub.frontend.SynBioHubException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.HashSet;
-import java.util.Set;
+import java.io.IOException;
 import java.net.URI;
-import org.cellocad.MIT.dnacompiler.LogicCircuit;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.commons.lang3.Validate;
 import org.cellocad.MIT.dnacompiler.Gate;
+import org.cellocad.MIT.dnacompiler.LogicCircuit;
 import org.cellocad.MIT.dnacompiler.Part;
 import org.cellocad.adaptors.synbiohubadaptor.SynBioHubAdaptor;
-import org.apache.commons.lang3.Validate;
+import org.sbolstandard.core2.AccessType;
+import org.sbolstandard.core2.Component;
+import org.sbolstandard.core2.ComponentDefinition;
+import org.sbolstandard.core2.RestrictionType;
+import org.sbolstandard.core2.SBOLConversionException;
+import org.sbolstandard.core2.SBOLDocument;
+import org.sbolstandard.core2.SBOLValidationException;
+import org.sbolstandard.core2.Sequence;
+import org.sbolstandard.core2.SequenceAnnotation;
+import org.sbolstandard.core2.SequenceOntology;
+import org.synbiohub.frontend.SynBioHubException;
+import org.virtualparts.VPRException;
+import org.virtualparts.VPRTripleStoreException;
+import org.virtualparts.data.SBOLInteractionAdder_GeneCentric;
 
 /**
  * Generate an SBOL document based on transcriptional units.
@@ -52,6 +59,25 @@ import org.apache.commons.lang3.Validate;
  *
  */
 public class SBOLGenerator {
+
+	/**
+	 * Perform VPR model generation. 
+	 * @param selectedRepo - The specified synbiohub repository the user wants VPR model generator to connect to. 
+	 * @param generatedModel - The file to generate the model from.
+	 * @return The generated model.
+	 * @throws SBOLValidationException
+	 * @throws IOException - Unable to read or write the given SBOLDocument
+	 * @throws SBOLConversionException - Unable to perform conversion for the given SBOLDocument.
+	 * @throws VPRException - Unable to perform VPR Model Generation on the given SBOLDocument.
+	 * @throws VPRTripleStoreException - Unable to perform VPR Model Generation on the given SBOLDocument.
+	 */
+	public static SBOLDocument generateModel(URL selectedRepo, SBOLDocument generatedModel) throws SBOLValidationException, IOException, SBOLConversionException, VPRException, VPRTripleStoreException, URISyntaxException
+	{
+		URI endpoint = new URL(selectedRepo,"/sparql").toURI();
+		SBOLInteractionAdder_GeneCentric interactionAdder = new SBOLInteractionAdder_GeneCentric(endpoint);
+		interactionAdder.addInteractions(generatedModel);
+		return generatedModel;
+	}
 
 	public static SBOLDocument generateSBOLDocument(LogicCircuit lc, SynBioHubAdaptor sbhAdaptor)
 		throws SynBioHubException, SBOLValidationException {
@@ -117,7 +143,7 @@ public class SBOLGenerator {
 			String sequence = "";
 			for (int j = 0; j < txnUnitsMap.get(gate).size(); j++) {
 				Part p = txnUnitsMap.get(gate).get(j);
-				Component c = cd.createComponent(p.get_name(),AccessType.PUBLIC,p.getSynBioHubURI());
+				Component c = cd.createComponent(p.get_name(),AccessType.PUBLIC,p.getComponentDefinition().getIdentity());
 				SequenceAnnotation sa =
 					cd.createSequenceAnnotation("SequenceAnnotation" + String.valueOf(j),
 												"SequenceAnnotation" + String.valueOf(j) + "_Range",

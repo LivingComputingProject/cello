@@ -18,7 +18,7 @@ public class BuildCircuitsUtil {
      * @param part_library
      * @return list of assigned circuits each of which has a different repressor-to-gate assignment (removes assignments that only vary the RBS)
      */
-    public static ArrayList<LogicCircuit> getUniqueRepressorAssignments(ArrayList<LogicCircuit> unique_lcs, GateLibrary gate_library, PartLibrary part_library) {
+    public static ArrayList<LogicCircuit> getUniqueRepressorAssignments(ArrayList<LogicCircuit> unique_lcs, GateLibrary gate_library, PartLibrary part_library, Args options) {
 
         HashMap<String, LogicCircuit> unique_repressor_assignments = new HashMap<>();
         for(int i=0; i<unique_lcs.size(); ++i) {
@@ -45,7 +45,7 @@ public class BuildCircuitsUtil {
 
             //unique assignments are determined by the alphabetical ordering of transcription units
 
-            PlasmidUtil.setGateParts(lc, gate_library, part_library);
+            PlasmidUtil.setGateParts(lc, gate_library, part_library, options);
 
             PlasmidUtil.setTxnUnits(lc, gate_library);
 
@@ -115,7 +115,7 @@ public class BuildCircuitsUtil {
      * @param part_library
      * @return
      */
-    public static ArrayList<LogicCircuit> removeIdenticalTUs(ArrayList<LogicCircuit> unique_lcs, GateLibrary gate_library, PartLibrary part_library) {
+    public static ArrayList<LogicCircuit> removeIdenticalTUs(ArrayList<LogicCircuit> unique_lcs, GateLibrary gate_library, PartLibrary part_library, Args options) {
 
         HashMap<String, LogicCircuit> unique_repressor_assignments = new HashMap<>();
         for(int i=0; i<unique_lcs.size(); ++i) {
@@ -140,7 +140,7 @@ public class BuildCircuitsUtil {
             }
 
 
-            PlasmidUtil.setGateParts(lc, gate_library, part_library);
+            PlasmidUtil.setGateParts(lc, gate_library, part_library, options);
 
             PlasmidUtil.setTxnUnits(lc, gate_library);
 

@@ -23,6 +23,7 @@ package org.cellocad.adaptors.synbiohubadaptor;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,7 +31,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.net.URISyntaxException;
 
 import javax.xml.namespace.QName;
 
@@ -49,7 +49,6 @@ import org.sbolstandard.core2.Annotation;
 import org.sbolstandard.core2.Attachment;
 import org.sbolstandard.core2.Component;
 import org.sbolstandard.core2.ComponentDefinition;
-import org.sbolstandard.core2.GenericTopLevel;
 import org.sbolstandard.core2.SBOLDocument;
 import org.sbolstandard.core2.SequenceOntology;
 import org.synbiohub.frontend.SynBioHubException;
@@ -75,8 +74,8 @@ public class SynBioHubAdaptor {
     private SynBioHubFrontend sbh;
 
     public SynBioHubAdaptor(URL url) throws SynBioHubException, IOException {
-        partLibrary = new PartLibrary();
-        gateLibrary = new GateLibrary(2,1);
+        this.setPartLibrary(new PartLibrary());
+        this.setGateLibrary(new GateLibrary(2,1));
 
         sbh = new SynBioHubFrontend(url.toString());
 
@@ -143,8 +142,8 @@ public class SynBioHubAdaptor {
 					// setGateToxicityTable(toxicityAttachments.get(g.getName()),g);
 					// setGateCytometry(cytometryAttachments.get(g.getName()),g);
 
-                    gateLibrary.get_GATES_BY_NAME().put(g.getName(), g);
-                    gateLibrary.setHashMapsForGates();
+                    this.getGateLibrary().get_GATES_BY_NAME().put(g.getName(), g);
+                    this.getGateLibrary().setHashMapsForGates();
 
                 } else { // otherwise it's a part
                     String name = cd.getName();
@@ -172,7 +171,7 @@ public class SynBioHubAdaptor {
                 }
             }
         }
-        partLibrary.set_ALL_PARTS(allParts);
+        this.getPartLibrary().set_ALL_PARTS(allParts);
     }
 
     private void setGateCytometry(Attachment a, Gate gate) throws MalformedURLException, IOException {
@@ -187,7 +186,7 @@ public class SynBioHubAdaptor {
         ArrayList<Double> xfer_titration_inputRPUs = new ArrayList<Double>();
 
         JsonParser parser = new JsonParser();
-        JsonArray jsonArray = parser.parse(cytometryJson).getAsJsonArray();
+        JsonArray jsonArray = parser.parse(cytometryJson).getAsJsonObject().get("cytometry_data").getAsJsonArray();
 
         Gson gson = new Gson();
         for (int i = 0; i < jsonArray.size(); ++i) {
@@ -260,7 +259,7 @@ public class SynBioHubAdaptor {
     }
 
 	public void setGateParts(GateLibrary gateLibrary, PartLibrary partLibrary) {
-		Map<String,Gate> gatesMap = this.gateLibrary.get_GATES_BY_NAME();
+		Map<String,Gate> gatesMap = this.getGateLibrary().get_GATES_BY_NAME();
 		for (String gateName : gatesMap.keySet()) {
 			Gate g = gatesMap.get(gateName);
 			ComponentDefinition cd = g.getComponentDefinition();
@@ -272,8 +271,6 @@ public class SynBioHubAdaptor {
 				HashMap<String, ArrayList<Part>> downstream_gate_parts = new HashMap<>();
 
 				//regulable promoter
-                System.out.println(gateName);
-                System.out.println(g.getGroup());
 				String promoter_name = "p" + g.getGroup();
 
 				if(!partLibrary.get_ALL_PARTS().containsKey(promoter_name)) {
@@ -375,9 +372,24 @@ public class SynBioHubAdaptor {
     }
 
     /**
+     * @param partLibrary the PartLibrary to set
+     */
+    private void setPartLibrary(PartLibrary partLibrary) {
+        this.partLibrary = partLibrary;
+    }
+
+    /**
      * @return the gateLibrary
      */
     public GateLibrary getGateLibrary() {
         return gateLibrary;
     }
+
+    /**
+     * @param gateLibrary the GateLibrary to set
+     */
+    private void setGateLibrary(GateLibrary gateLibrary) {
+        this.gateLibrary = gateLibrary;
+    }
+
 }

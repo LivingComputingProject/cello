@@ -3,11 +3,11 @@ package org.cellocad.MIT.dnacompiler;
  * Created by Bryan Der on 3/26/14.
  */
 
-import org.apache.log4j.Logger;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+
+import org.apache.log4j.Logger;
 
 /***********************************************************************
 
@@ -330,7 +330,7 @@ public class PlasmidUtil {
      * Must be done before building plasmid(s).
      *
      */
-    public static void setGateParts(LogicCircuit lc, GateLibrary gate_library, PartLibrary part_library) {
+    public static void setGateParts(LogicCircuit lc, GateLibrary gate_library, PartLibrary part_library, Args options) {
 
         for(int i=0; i<lc.get_logic_gates().size(); ++i) {
             Gate g = lc.get_logic_gates().get(i);
@@ -347,7 +347,12 @@ public class PlasmidUtil {
         for(int i=0; i<lc.get_input_gates().size(); ++i) {
             Gate g = lc.get_input_gates().get(i);
 
-            Part input_promoter = new Part(g.name, "promoter", gate_library.get_INPUTS_SEQ().get(g.name));
+            Part input_promoter = null;
+            if (options.is_synbiohub_parts()) {
+                input_promoter = part_library.get_ALL_PARTS().get(g.name);
+            } else {
+                input_promoter = new Part(g.name, "promoter", gate_library.get_INPUTS_SEQ().get(g.name));
+            }
 
             part_library.get_ALL_PARTS().put(g.name, input_promoter);
 

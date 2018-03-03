@@ -6,6 +6,7 @@ package org.cellocad.MIT.dnacompiler;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Modifier;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -32,7 +33,6 @@ import org.cellocad.MIT.figures.PlotLibWriter;
 import org.cellocad.MIT.figures.ScriptCommands;
 import org.cellocad.MIT.tandem_promoter.InterpolateTandemPromoter;
 import org.cellocad.adaptors.eugeneadaptor.EugeneAdaptor;
-import org.cellocad.adaptors.sboladaptor.SBOLCircuitWriter;
 import org.cellocad.adaptors.synbiohubadaptor.SynBioHubAdaptor;
 import org.cellocad.adaptors.ucfadaptor.UCFAdaptor;
 import org.cellocad.adaptors.ucfadaptor.UCFReader;
@@ -44,9 +44,14 @@ import org.codehaus.jackson.node.ObjectNode;
 import org.json.JSONException;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.ParseException;
-import org.synbiohub.frontend.SynBioHubException;
-import org.sbolstandard.core2.SBOLValidationException;
+import org.sbolstandard.core2.SBOLConversionException;
 import org.sbolstandard.core2.SBOLDocument;
+import org.sbolstandard.core2.SBOLValidationException;
+import org.sbolstandard.core2.SBOLWriter;
+import org.synbiohub.frontend.SynBioHubException;
+import org.virtualparts.VPRException;
+import org.virtualparts.VPRTripleStoreException;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -1009,7 +1014,7 @@ public class DNACompiler {
                 Util.fileWriter(_options.get_output_directory() + lc.get_assignment_name() + "_logic_circuit.txt", lc.toString(), false);
 
                 logger.info("=========== Circuit bionetlist ===============");
-                PlasmidUtil.setGateParts(lc, gateLibrary, partLibrary);
+                PlasmidUtil.setGateParts(lc, gateLibrary, partLibrary, _options);
                 Netlist.setBioNetlist(lc, false);
                 Util.fileWriter(_options.get_output_directory() + lc.get_assignment_name() + "_bionetlist.txt", lc.get_netlist(), false);
             }
@@ -1055,7 +1060,7 @@ public class DNACompiler {
 
             // TODO
             logger.info("=========== Circuit bionetlist ===============");
-            PlasmidUtil.setGateParts(lc, gateLibrary, partLibrary);
+            PlasmidUtil.setGateParts(lc, gateLibrary, partLibrary, _options);
             Netlist.setBioNetlist(lc, false);
             logger.info(lc.get_netlist());
             Util.fileWriter(_options.get_output_directory() + lc.get_assignment_name() + "_bionetlist.txt", lc.get_netlist(), false);
@@ -1349,16 +1354,16 @@ public class DNACompiler {
         for(int i=0; i<lc.get_circuit_plasmid_parts().size(); ++i) {
             ArrayList<Part> plasmid = lc.get_circuit_plasmid_parts().get(i);
 
-            SBOLCircuitWriter sbol_circuit_writer = new SBOLCircuitWriter();
-			if (_options.is_synbiohub_parts() && this.getSynBioHubAdaptor() != null) {
-				sbol_circuit_writer.setSynBioHubAdaptor(this.getSynBioHubAdaptor());
-			}
+            // SBOLCircuitWriter sbol_circuit_writer = new SBOLCircuitWriter();
+			// if (_options.is_synbiohub_parts() && this.getSynBioHubAdaptor() != null) {
+			// 	sbol_circuit_writer.setSynBioHubAdaptor(this.getSynBioHubAdaptor());
+			// }
 
-            sbol_circuit_writer.setCircuitName(lc.get_assignment_name());
-            String sbol_filename = lc.get_assignment_name() + "_sbol_circuit" + "_P" + String.format("%03d", i) + ".sbol";
-            String sbol_plasmid_name = lc.get_assignment_name() + "_P" + String.format("%03d", i);
+            // sbol_circuit_writer.setCircuitName(lc.get_assignment_name());
+            // String sbol_filename = lc.get_assignment_name() + "_sbol_circuit" + "_P" + String.format("%03d", i) + ".sbol";
+            // String sbol_plasmid_name = lc.get_assignment_name() + "_P" + String.format("%03d", i);
 
-            String sbol_document = sbol_circuit_writer.writeSBOLCircuit(sbol_filename, lc, plasmid, sbol_plasmid_name, _options);
+            // String sbol_document = sbol_circuit_writer.writeSBOLCircuit(sbol_filename, lc, plasmid, sbol_plasmid_name, _options);
         }
 
 		SBOLDocument sbolDocument = null;
@@ -1367,9 +1372,20 @@ public class DNACompiler {
 		} catch (SynBioHubException | SBOLValidationException e) {
 			e.printStackTrace();
 		}
+        if (sbolDocument != null) {
+            try {
+                sbolDocument = SBOLGenerator.generateModel(_options.get_synbiohub_url(),sbolDocument);
+            } catch (IOException | SBOLValidationException | SBOLConversionException | VPRException | VPRTripleStoreException | URISyntaxException e) {
+                e.printStackTrace();
+            }
+        }
 		if (sbolDocument != null) {
 			String sbolFilename = lc.get_assignment_name() + "_sbol_circuit.xml";
-			Util.fileWriter(sbolFilename, sbolDocument.toString(), false);
+            try {
+                SBOLWriter.write(sbolDocument,_options.get_output_directory() + "/" + sbolFilename);
+            } catch (IOException | SBOLConversionException e) {
+                e.printStackTrace();
+            }
 		}
 
         PlasmidUtil.resetParentGates(lc);
