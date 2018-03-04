@@ -21,6 +21,7 @@ import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
+import org.cellocad.adaptors.sboladaptor.SBOLCircuitWriter;
 import org.cellocad.BU.export.SBOLGenerator;
 import org.cellocad.BU.netsynth.NetSynth;
 import org.cellocad.BU.netsynth.NetSynthSwitch;
@@ -400,11 +401,12 @@ public class DNACompiler {
          * UCFReader: reads .json text file and creates UCF object.
          * UCFAdaptor: returns java data types from the UCF object.
          */
-		logger.info("\n");
-        logger.info("///////////////////////////////////////////////////////////");
-        logger.info("//////////   Building SynBioHub parts   ///////////////////");
-        logger.info("///////////////////////////////////////////////////////////\n");
+		
 		if (_options.is_synbiohub_parts()) {
+            logger.info("\n");
+            logger.info("///////////////////////////////////////////////////////////");
+            logger.info("//////////   Building SynBioHub parts   ///////////////////");
+            logger.info("///////////////////////////////////////////////////////////\n");
 			try {
 				this.setSynBioHubAdaptor(new SynBioHubAdaptor(_options.get_synbiohub_url()));
 			} catch (IOException | SynBioHubException e) {
@@ -1351,42 +1353,45 @@ public class DNACompiler {
         logger.info("\n=========== SBOL for circuit plasmids ========");
 
         //currently not writing an SBOL document for the output plasmid if the output module is on a different plasmid than the circuit.
-        for(int i=0; i<lc.get_circuit_plasmid_parts().size(); ++i) {
-            ArrayList<Part> plasmid = lc.get_circuit_plasmid_parts().get(i);
 
-            // SBOLCircuitWriter sbol_circuit_writer = new SBOLCircuitWriter();
-			// if (_options.is_synbiohub_parts() && this.getSynBioHubAdaptor() != null) {
-			// 	sbol_circuit_writer.setSynBioHubAdaptor(this.getSynBioHubAdaptor());
-			// }
+        if (!_options.is_synbiohub_parts()) {
+            for(int i=0; i<lc.get_circuit_plasmid_parts().size(); ++i) {
+                ArrayList<Part> plasmid = lc.get_circuit_plasmid_parts().get(i);
 
-            // sbol_circuit_writer.setCircuitName(lc.get_assignment_name());
-            // String sbol_filename = lc.get_assignment_name() + "_sbol_circuit" + "_P" + String.format("%03d", i) + ".sbol";
-            // String sbol_plasmid_name = lc.get_assignment_name() + "_P" + String.format("%03d", i);
+                SBOLCircuitWriter sbol_circuit_writer = new SBOLCircuitWriter();
+                if (_options.is_synbiohub_parts() && this.getSynBioHubAdaptor() != null) {
+                    sbol_circuit_writer.setSynBioHubAdaptor(this.getSynBioHubAdaptor());
+                }
 
-            // String sbol_document = sbol_circuit_writer.writeSBOLCircuit(sbol_filename, lc, plasmid, sbol_plasmid_name, _options);
-        }
+                sbol_circuit_writer.setCircuitName(lc.get_assignment_name());
+                String sbol_filename = lc.get_assignment_name() + "_sbol_circuit" + "_P" + String.format("%03d", i) + ".sbol";
+                String sbol_plasmid_name = lc.get_assignment_name() + "_P" + String.format("%03d", i);
 
-		SBOLDocument sbolDocument = null;
-		try {
-			sbolDocument = SBOLGenerator.generateSBOLDocument(lc, this.getSynBioHubAdaptor());
-		} catch (SynBioHubException | SBOLValidationException e) {
-			e.printStackTrace();
-		}
-        if (sbolDocument != null) {
+                String sbol_document = sbol_circuit_writer.writeSBOLCircuit(sbol_filename, lc, plasmid, sbol_plasmid_name, _options);
+            }
+        } else {
+            SBOLDocument sbolDocument = null;
             try {
-                sbolDocument = SBOLGenerator.generateModel(_options.get_synbiohub_url(),sbolDocument);
-            } catch (IOException | SBOLValidationException | SBOLConversionException | VPRException | VPRTripleStoreException | URISyntaxException e) {
+                sbolDocument = SBOLGenerator.generateSBOLDocument(lc, this.getSynBioHubAdaptor());
+            } catch (SynBioHubException | SBOLValidationException e) {
                 e.printStackTrace();
             }
-        }
-		if (sbolDocument != null) {
-			String sbolFilename = lc.get_assignment_name() + "_sbol_circuit.xml";
-            try {
-                SBOLWriter.write(sbolDocument,_options.get_output_directory() + "/" + sbolFilename);
-            } catch (IOException | SBOLConversionException e) {
-                e.printStackTrace();
+            if (sbolDocument != null) {
+                try {
+                    sbolDocument = SBOLGenerator.generateModel(_options.get_synbiohub_url(),sbolDocument);
+                } catch (IOException | SBOLValidationException | SBOLConversionException | VPRException | VPRTripleStoreException | URISyntaxException e) {
+                    e.printStackTrace();
+                }
             }
-		}
+            if (sbolDocument != null) {
+                String sbolFilename = lc.get_assignment_name() + "_sbol_circuit.xml";
+                try {
+                    SBOLWriter.write(sbolDocument,_options.get_output_directory() + "/" + sbolFilename);
+                } catch (IOException | SBOLConversionException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
 
         PlasmidUtil.resetParentGates(lc);
 

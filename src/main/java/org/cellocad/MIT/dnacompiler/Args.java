@@ -36,7 +36,7 @@ public class Args {
     @Getter @Setter private boolean _NOTequalsNOR1 = true;
 
 	// use synbiohub to import parts
-	@Getter @Setter private boolean _synbiohub_parts = true;
+	@Getter @Setter private boolean _synbiohub_parts = false;
 
 	// synbiohub url
 	@Getter @Setter private URL _synbiohub_url;
@@ -164,6 +164,15 @@ public class Args {
                     throw new IllegalArgumentException("_fin_verilog file path does not exist.");
                 }
             }
+            if(args[i].equals("-synbiohuburl")) {
+                String synBioHubURL = args[i+1];
+                try {
+                    URL url = new URL(synBioHubURL);
+                    this.set_synbiohub_url(url);
+                } catch (MalformedURLException e) {
+                    e.printStackTrace();
+                }
+            }
 
             if(args[i].equals("-jobID")) {
                 _jobID = args[i+1];
@@ -241,6 +250,10 @@ public class Args {
             if(args[i].equals("-eugene_scars")) {
                 if(args[i+1].equals("true")) {_eugene_scars = true;}
                 if(args[i+1].equals("false")){_eugene_scars = false;}
+            }
+            if(args[i].equals("-synbiohub")) {
+                if(args[i+1].equals("true")) {_synbiohub_parts = true;}
+                if(args[i+1].equals("false")){_synbiohub_parts = false;}
             }
             if(args[i].equals("-eugene_dnaseq")) {
                 if(args[i+1].equals("true")) {_eugene_dnaseq = true;}

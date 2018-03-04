@@ -100,7 +100,10 @@ function set_filepaths() {
                 if(file.endsWith(".ape")) {
                     nA_files.plasmids.push( file );
                 }
-                if(file.endsWith(".sbol")) {
+                if(file.endsWith(".xml")) {
+                    nA_files.sbol.push( file );
+                }
+		if(file.endsWith(".sbol")) {
                     nA_files.sbol.push( file );
                 }
             }
@@ -547,7 +550,13 @@ function showPlasmid(element) {
         data: {
         },
         success: function (response) {
-            $('#plasmid_text').text(response);
+	    var text;
+	    if (filename.endsWith(".xml")) {
+		text = new XMLSerializer().serializeToString(response);
+	    } else {
+		text = response;
+	    }
+            $('#plasmid_text').text(text);
         },
         error: function() {
         }
@@ -654,9 +663,9 @@ function synbiohub_submit_error(message) {
 
 $('#btnSBHSubmit').click(function() {
     var missing = [];
-    // if ($('#sbh_collection').val() == '') {
-    // 	missing.push("collection");
-    // }
+    if ($('#sbh_collection').val() == '') {
+    	missing.push("collection");
+    }
     if ($('#sbh_id').val() == '') {
 	missing.push("id");
     }
@@ -685,7 +694,7 @@ $('#btnSBHSubmit').click(function() {
 	    name: $('#sbh_name').val(),
 	    description: $('#sbh_description').val(),
 	    citations: $('#sbh_citations').val(),
-	    // collections: $('#collection_pulldown').val(),
+	    collections: $('#collection_pulldown').val(),
 	    overwrite: $('#sbh_overwrite').val(),
 	    sbol: $('#sbh_sbol_file_pulldown').val(),
 	    jobid: res.jobID

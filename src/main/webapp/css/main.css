@@ -306,3 +306,9 @@ input[type=number] {-moz-appearance: textfield;}
 form input {
     margin-bottom: 1em;
 }
+
+input[type=checkbox] {
+    -webkit-appearance: checkbox;
+    -webkit-box-shadow: none;
+    -moz-box-shadow: none;
+}

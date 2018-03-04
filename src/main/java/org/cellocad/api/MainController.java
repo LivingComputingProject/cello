@@ -296,7 +296,7 @@ public class MainController extends BaseController {
 
 		SynBioHubFrontend sbh = this.getSynBioHubFrontend();
 		if (sbh == null) {
-			sbh = new SynBioHubFrontend("https://synbiohub.programmingbiology.org");
+			sbh = new SynBioHubFrontend("https://synbiohub.utah.edu/");
 			this.setSynBioHubFrontend(sbh);
 		}
 
@@ -363,7 +363,7 @@ public class MainController extends BaseController {
 		String sbhVersion = params.get("version");
 		String sbhDescription = params.get("description");
 		String sbhCitations = params.get("citations");
-		// String sbhCollections = params.get("collections");
+		String sbhCollections = params.get("collections");
 		boolean sbhOverwrite = Boolean.valueOf(params.get("overwrite"));
 		String sbhSBOLFile = params.get("sbol");
 		String jobid = params.get("jobid");

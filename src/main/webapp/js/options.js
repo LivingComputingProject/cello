@@ -11,6 +11,8 @@ if(sessionStorage.options_page) {
     opt.nP = options_page.nP;
     opt.ucf_name = options_page.ucf_name;
     opt.options_string = options_page.options_string;
+    opt.use_synbiohub = options_page.use_synbiohub;
+    opt.synbiohub_url = options_page.synbiohub_url;
 }
 
 $( document ).ready( function() {
@@ -21,7 +23,6 @@ var default_ucfs = ["Eco1C1G1T1.UCF.json"];
 var user_ucfs = [];
 var jsonUCF = null;
 var resultRoot = "";
-
 
 function loadOptionsPageData() {
     if (opt.nA == null || opt.nA == undefined) {
@@ -221,6 +222,14 @@ $('#ucf_pulldown').on('change', function() {
     saveOptions();
 });
 
+$('#synbiohub_checkbox').on('change', function() {
+    saveOptions();
+});
+
+$('#synbiohub_checkbox').on('change', function() {
+    saveOptions();
+});
+
 $('#collection_pulldown').on('change', function() {
     chooseUCF();
 });
@@ -377,10 +386,15 @@ function loadSettings() {
 
 function saveOptions()
 {
+    opt.use_synbiohub = $('#synbiohub_checkbox').is(':checked');
+    opt.synbiohub_url = $('#synbiohub_url').val();
+
     var text_options = "";
     text_options += " -nA "  + opt.nA;
     text_options += " -nP "  + opt.nP;
     text_options += " -UCF " + opt.ucf_name;
+    text_options += " -synbiohub " + opt.use_synbiohub;
+    text_options += " -synbiohuburl " + opt.synbiohub_url;
 
     if($('#nP').val() < Number($('#nP').attr('min'))) {
         $('#nP').val(opt.nP);
