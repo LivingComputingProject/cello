@@ -135,6 +135,21 @@ $( "#download_zip" ).on("click", function() {
     downloadZip();
 });
 
+$('#sbh-submission-style-selection input:radio').on('change', function() {
+    $('#sbhSubmitError').html('');
+    if (this.value == 1) {
+	get_synbiohub_collections();
+	$("#sbh_new_collection").css({"display":"none"});
+	$("#sbh_existing_collection").css({"display":"block"});
+    } else {
+	$("#sbh_new_collection").css({"display":"block"});
+	$("#sbh_existing_collection").css({"display":"none"});
+    }
+});
+
+$('#sbh_id').on('change', function() {
+    $('#sbh_name').val($('#sbh_id').val());
+});
 
 function set_all_result_files() {
     $.ajax({
@@ -610,6 +625,7 @@ $('#btnSBHLogin').click(function() {
         url: "synbiohub/login",
         type: "POST",
         data: {
+	    url: $('#sbh-submit-url').val(),
             username: $('#sbhlogin_username').val(),
             password: $('#sbhlogin_password').val()
         },
@@ -621,9 +637,9 @@ $('#btnSBHLogin').click(function() {
             console.log('login response ' + JSON.stringify(response));
 
             if (response['status'] === 'exception') {
-                $('#sbhLoginError').html('<div class="alert alert-danger" style="margin-top:5px">' + response['result'] + '</div>');
+                $('#sbhLoginError').html('<div class="alert alert-danger alert-synbiohub" style="width:350px;">' + response['message'].replace(/(?:\r\n|\r|\n)/g, '<br />') + '</div>');
             } else {
-		$('#sbhLoginError').html('<div class="alert alert-danger" style="margin-top:5px">Logged in to SynBioHub</div>');
+		$('#sbhLoginError').html('<div class="alert alert-success alert-synbiohub" style="width:350px;">Logged in to SynBioHub.</div>');
 		get_synbiohub_collections();
             }
         }
@@ -633,7 +649,7 @@ $('#btnSBHLogin').click(function() {
 
 function get_synbiohub_collections() {
     $.ajax({
-        url: "synbiohub/collections",
+        url: "synbiohub/getcollections",
         type: "GET",
         headers: {
             "Authorization": "Basic " + btoa(sessionStorage.username + ":" + sessionStorage.password)
@@ -643,6 +659,7 @@ function get_synbiohub_collections() {
             var collections = response['collections'];
             res.synbiohub_collections = collections;
 	    var x = document.getElementById("collection_pulldown");
+	    x.innerHTML = '';
 	    for(var k in collections) {
 		var custom = document.createElement("option");
 		custom.text  = k;
@@ -658,61 +675,81 @@ function get_synbiohub_collections() {
 }
 
 function synbiohub_submit_error(message) {
-    $('#sbhSubmitError').html('<div class="alert alert-danger" style="margin-top:5px">' + message + '</div>');
+    $('#sbhSubmitError').html('<div class="alert alert-danger alert-synbiohub">' + message + '</div>');
 }
 
 $('#btnSBHSubmit').click(function() {
-    var missing = [];
-    if ($('#sbh_collection').val() == '') {
-    	missing.push("collection");
+    $('#sbhSubmitError').html('');
+    if ($('#sbh-submission-style-selection input:radio:checked').val() == 1) {
+	$.ajax({
+            url: "synbiohub/addtocollection",
+            type: "POST",
+            data: {
+		collection: $('#collection_pulldown').val(),
+		overwrite: $('#sbh_overwrite').val(),
+		sbol: $('#sbh_sbol_file_pulldown').val(),
+		jobid: res.jobID
+            },
+    	    headers: {
+		"Authorization": "Basic " + btoa(sessionStorage.username + ":" + sessionStorage.password)
+            },
+            success: function (response) {
+		console.log('submit response ' + JSON.stringify(response));
+		if (response['status'] === 'exception') {
+                    $('#sbhSubmitError').html('<div class="alert alert-danger" style="margin-top:5px">' + response['message'].replace(/(?:\r\n|\r|\n)/g, '<br />') + '</div>');
+		} else {
+    		    $('#sbhSubmitError').html('<div class="alert alert-success" style="margin-top:5px">Submitted.</div>');
+		}
+            },
+	});
+    } else {
+	// var missing = [];
+	// if ($('#sbh_collection').val() == '') {
+	// 	missing.push("collection");
+	// }
+	// if ($('#sbh_id').val() == '') {
+	// 	missing.push("id");
+	// }
+	// if ($('#sbh_version').val() == '') {
+	// 	missing.push("version");
+	// }
+	// if ($('#sbh_name').val() == '') {
+	// 	missing.push("name");
+	// }
+	// if ($('#sbh_description').val() == '') {
+	// 	missing.push("description");
+	// }
+	// if (missing.length > 0) {
+	// 	synbiohub_submit_error("missing the following fields: " + missing.join(", "));
+	// }
+	$.ajax({
+            url: "synbiohub/createcollection",
+            type: "POST",
+            data: {
+		id: $('#sbh_id').val(),
+		version: $('#sbh_version').val(),
+		name: $('#sbh_name').val(),
+		description: $('#sbh_description').val(),
+		citations: $('#sbh_citations').val(),
+		overwrite: $('#sbh_overwrite').val(),
+		sbol: $('#sbh_sbol_file_pulldown').val(),
+		jobid: res.jobID
+            },
+    	    headers: {
+		"Authorization": "Basic " + btoa(sessionStorage.username + ":" + sessionStorage.password)
+            },
+            success: function (response) {
+		console.log('submit response ' + JSON.stringify(response));
+		if (response['status'] === 'exception') {
+                    $('#sbhSubmitError').html('<div class="alert alert-danger" style="margin-top:5px">' + response['message'].replace(/(?:\r\n|\r|\n)/g, '<br />') + '</div>');
+		} else {
+    		    $('#sbhSubmitError').html('<div class="alert alert-success" style="margin-top:5px">Submitted.</div>');
+		}
+            },
+	});
     }
-    if ($('#sbh_id').val() == '') {
-	missing.push("id");
-    }
-    if ($('#sbh_version').val() == '') {
-	missing.push("version");
-    }
-    if ($('#sbh_name').val() == '') {
-	missing.push("name");
-    }
-    if ($('#sbh_description').val() == '') {
-	missing.push("description");
-    }
-    // if ($('#sbh_citations').val() == '') {
-    // 	missing.push("citations");
-    // }
-
-    if (missing.length < 1) {
-	synbiohub_submit_error("missing the following fields: " + missing.join(", "));
-    }
-    $.ajax({
-        url: "synbiohub/submit",
-        type: "POST",
-        data: {
-            id: $('#sbh_id').val(),
-            version: $('#sbh_version').val(),
-	    name: $('#sbh_name').val(),
-	    description: $('#sbh_description').val(),
-	    citations: $('#sbh_citations').val(),
-	    collections: $('#collection_pulldown').val(),
-	    overwrite: $('#sbh_overwrite').val(),
-	    sbol: $('#sbh_sbol_file_pulldown').val(),
-	    jobid: res.jobID
-        },
-    	headers: {
-            "Authorization": "Basic " + btoa(sessionStorage.username + ":" + sessionStorage.password)
-        },
-        success: function (response) {
-
-            console.log('submit response ' + JSON.stringify(response));
-
-            if (response['status'] === 'exception') {
-                $('#sbhSubmitError').html('<div class="alert alert-danger" style="margin-top:5px">' + response['result'] + '</div>');
-            } else {
-    		$('#sbhSubmitError').html('<div class="alert alert-danger" style="margin-top:5px">submitted</div>');
-            }
-        }
-    });
+    
+    
 
 });
 

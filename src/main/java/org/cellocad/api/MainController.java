@@ -27,6 +27,10 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
 import java.nio.charset.Charset;
+import java.net.URL;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 /**
  * Created by Bryan Der on 8/21/15.
@@ -291,29 +295,42 @@ public class MainController extends BaseController {
         }
 		String username = params.get("username");
 		String password = params.get("password");
+        String url = params.get("url");
 
         JSONObject jsonResponse = new JSONObject();
 
+        try {
+            new URL(url);
+        } catch (MalformedURLException e) {
+            jsonResponse.put("status", "exception");
+			jsonResponse.put("message", "Malformed URL.");
+            return jsonResponse;
+        }
+
 		SynBioHubFrontend sbh = this.getSynBioHubFrontend();
+        
 		if (sbh == null) {
-			sbh = new SynBioHubFrontend("https://synbiohub.utah.edu/");
+			sbh = new SynBioHubFrontend(url);
+			this.setSynBioHubFrontend(sbh);
+		}
+        if (!sbh.getBackendUrl().equals(url)) {
+			sbh = new SynBioHubFrontend(url);
 			this.setSynBioHubFrontend(sbh);
 		}
 
 		try {
 			sbh.login(username,password);
 		} catch (SynBioHubException e) {
-			e.printStackTrace();
 			jsonResponse.put("status", "exception");
-			jsonResponse.put("result", e.getLocalizedMessage());
+			jsonResponse.put("result", getSynBioHubExceptionMessage(e));
 			return jsonResponse;
 		}
 
-		jsonResponse.put("status", "good");
+		jsonResponse.put("status", "success");
 		return jsonResponse;
 	}
 
-    @RequestMapping(value="/synbiohub/collections",method=RequestMethod.GET,produces="application/json")
+    @RequestMapping(value="/synbiohub/getcollections",method=RequestMethod.GET,produces="application/json")
     public @ResponseBody JSONObject synBioHubCollections(@RequestHeader("Authorization") String basic) {
         JSONObject jsonResponse = new JSONObject();
 
@@ -336,9 +353,12 @@ public class MainController extends BaseController {
 			List<IdentifiedMetadata> collections = sbh.search(query);
 			Map<String,String> collectionsMap = new HashMap<>();
 			for (IdentifiedMetadata im : collections) {
-				collectionsMap.put(im.getName(),im.getDisplayId());
+                // don't add collections that have "/public" in the URI.
+                if (!im.getUri().contains("/public/")) {
+                    collectionsMap.put(im.getName(),im.getUri());
+                }
 			}
-			jsonResponse.put("status","good");
+			jsonResponse.put("status","success");
 			JSONObject jsonCollections = new JSONObject();
 			jsonCollections.putAll(collectionsMap);
 			jsonResponse.put("collections",collectionsMap);
@@ -346,24 +366,23 @@ public class MainController extends BaseController {
 		} catch (SynBioHubException e) {
 			e.printStackTrace();
 			jsonResponse.put("status","exception");
-			jsonResponse.put("message",e.getLocalizedMessage());
+			jsonResponse.put("message",getSynBioHubExceptionMessage(e));
 			return jsonResponse;
 		}
 	}
 
-    @RequestMapping(value="/synbiohub/submit",method=RequestMethod.POST,produces="application/json")
+    @RequestMapping(value="/synbiohub/createcollection",method=RequestMethod.POST,produces="application/json")
     public @ResponseBody
-    JSONObject synBioHubSubmit(@RequestHeader("Authorization") String basic,
-							   @RequestParam Map<String, String> params)
+        JSONObject synBioHubCreateCollection(@RequestHeader("Authorization") String basic,
+                                            @RequestParam Map<String, String> params)
 		throws SBOLConversionException,SBOLValidationException,IOException {
         JSONObject jsonResponse = new JSONObject();
-
+        
 		String sbhId = params.get("id");
 		String sbhName = params.get("name");
 		String sbhVersion = params.get("version");
 		String sbhDescription = params.get("description");
 		String sbhCitations = params.get("citations");
-		String sbhCollections = params.get("collections");
 		boolean sbhOverwrite = Boolean.valueOf(params.get("overwrite"));
 		String sbhSBOLFile = params.get("sbol");
 		String jobid = params.get("jobid");
@@ -371,7 +390,12 @@ public class MainController extends BaseController {
 		SynBioHubFrontend sbh = this.getSynBioHubFrontend();
 		if (sbh == null) {
 			jsonResponse.put("status","exception");
-			jsonResponse.put("message","login to synbiohub first");
+            jsonResponse.put("message","Log in to SynBioHub first.");
+			return jsonResponse;
+		}
+        if (sbh.getUsername() == null) {
+			jsonResponse.put("status","exception");
+            jsonResponse.put("message","Log in to SynBioHub first.");
 			return jsonResponse;
 		}
 
@@ -381,17 +405,74 @@ public class MainController extends BaseController {
 
 		try {
 			sbh.createCollection(sbhId,sbhVersion,sbhName,sbhDescription,sbhCitations,sbhOverwrite,sbol);
-			System.out.println("tried to submit");
-			jsonResponse.put("status","good");
+			jsonResponse.put("status","success");
 			jsonResponse.put("message","submitted");
 			return jsonResponse;
-		} catch (Exception e) {
-			e.printStackTrace();
+		} catch (SynBioHubException e) {
 			jsonResponse.put("status","exception");
-			jsonResponse.put("message",e.getLocalizedMessage());
+			jsonResponse.put("message",getSynBioHubExceptionMessage(e));
 		}
 		return jsonResponse;
 	}
+
+    @RequestMapping(value="/synbiohub/addtocollection",method=RequestMethod.POST,produces="application/json")
+    public @ResponseBody
+        JSONObject synBioHubAddToCollection(@RequestHeader("Authorization") String basic,
+                                            @RequestParam Map<String, String> params)
+		throws SBOLConversionException,SBOLValidationException,IOException {
+        JSONObject jsonResponse = new JSONObject();
+        
+		String sbhCollection = params.get("collection");
+		boolean sbhOverwrite = Boolean.valueOf(params.get("overwrite"));
+		String sbhSBOLFile = params.get("sbol");
+		String jobid = params.get("jobid");
+
+        URI uri = null;
+        try {
+            uri = new URI(sbhCollection);
+        } catch (URISyntaxException | NullPointerException e) {
+            jsonResponse.put("status","exception");
+			jsonResponse.put("message","Invalid or empty collection URI.");
+			return jsonResponse;
+        }
+		
+		SynBioHubFrontend sbh = this.getSynBioHubFrontend();
+		if (sbh == null) {
+			jsonResponse.put("status","exception");
+			jsonResponse.put("message","Log in to SynBioHub first.");
+			return jsonResponse;
+		}
+
+		String username = auth.getUsername(basic);
+		String filePath = _resultPath + "/" + username + "/" + jobid + "/" + sbhSBOLFile;
+		SBOLDocument sbol = SBOLReader.read(filePath);
+
+		try {
+			sbh.addToCollection(uri,sbhOverwrite,sbol);
+			jsonResponse.put("status","success");
+			jsonResponse.put("message","submitted");
+			return jsonResponse;
+		} catch (SynBioHubException e) {
+			jsonResponse.put("status","exception");
+			jsonResponse.put("message",getSynBioHubExceptionMessage(e));
+		}
+		return jsonResponse;
+	}
+
+    private String getSynBioHubExceptionMessage(SynBioHubException e) {
+        String str = e.getLocalizedMessage();
+        if (str.contains("org.synbiohub.frontend.SynBioHubException: ")) {
+            str = str.replace("org.synbiohub.frontend.SynBioHubException: ","");
+            if (str.startsWith("[\"")) {
+                str = str.substring(2, str.length());
+                str = str.substring(0, str.length() - 2);
+                str = str.replace("\",\"","\n");
+            }
+        } else if (str.contains("org.synbiohub.frontend.PermissionException")) {
+            str = "Permission exception.";
+        }
+        return str;
+    }
 
 	private SynBioHubFrontend synBioHubFrontend;
 

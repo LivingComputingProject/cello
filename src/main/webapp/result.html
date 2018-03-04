@@ -169,27 +169,47 @@
 
 
             <div id="view6" class="view" style="display: none">
-              <h2><small>SynBioHub login</small></h2><a id="dl_link" href="" target-blank> </a> <br>
-	      <input id="sbhlogin_username" type="text" class="span2" placeholder="Login"><br>
-              <input id="sbhlogin_password" type="password" class="span2" placeholder="Password"><br>
-              <input id="btnSBHLogin" type="submit" value="Login" class="btn btn-warning">
-	      <div id="sbhLoginError"></div><br>
-	      <label for="sbh_sbol_file_pulldown"><h3><small>SBOL file</small></h3></label>
-              <select id="sbh_sbol_file_pulldown"></select><br>
-	      <label for="collection_pulldown"><h3><small>Collections</small></h3></label>
-              <select id="collection_pulldown"></select><br>
-	      <input id="sbh_id" type="text" class="span2" placeholder="id"><br>
-	      <input id="sbh_version" type="text" class="span2" placeholder="version"><br>
-	      <input id="sbh_name" type="text" class="span2" placeholder="name"><br>
-	      <input id="sbh_description" type="text" class="span2" placeholder="description"><br>
-	      <input id="sbh_citations" type="text" class="span2" placeholder="citations"><br>
-	      <label for="sbh_overwrite"><h3><small>overwrite?</small></h3></label>
-	      <select id="sbh_overwrite">
-		<option value="0">false</option>
-		<option value="1">true</option>
-	      </select><br>
-	      <input id="btnSBHSubmit" type="submit" value="Submit" class="btn btn-warning"><br>
-	      <div id="sbhSubmitError"></div>
+	      <div style="display:table-cell;padding-right:30px;width:400px;">
+		<label for="sbh-submit-url">SynBioHub URL</label><br>
+		<input id="sbh-submit-url" type="text" class="span2" placeholder="https://synbiohub.utah.edu" value="https://synbiohub.utah.edu"><br>
+		<label for="sbhlogin" style="margin-top:10px;">SynBioHub login</label><br>
+		<div id="sbhlogin">
+		  <input id="sbhlogin_username" type="text" class="span2 sbh-login-field" placeholder="email"><br>
+		  <input id="sbhlogin_password" type="password" class="span2 sbh-login-field" placeholder="password"><br>
+		  <input id="btnSBHLogin" type="submit" value="Login" class="btn btn-success" style="margin-top:5px;">
+		  <div id="sbhLoginError"></div><br>
+		</div>
+	      </div>
+	      <div style="display:table-cell;">
+		<label for="sbh_sbol_file_pulldown">SBOL file</label><br/>
+		<select id="sbh_sbol_file_pulldown" style="margin-top:0px"></select><br>
+
+		<div id="sbh-submission-style-selection">
+		  <div class="radio">
+		    <label><input class="toggle" type="radio" name="submit_existing" style="transform: scale(2.0);" value="1">submit to existing collection</label>
+		  </div>
+		  <div class="radio">
+		    <label><input class="toggle" type="radio" name="submit_existing" style="transform: scale(2.0);" value="0" checked>create new collection</label>
+		  </div>
+		</div>
+		<div id="sbh_existing_collection" style="display:none;">
+		  <label for="collection_pulldown">collection</label><br/>
+		  <select id="collection_pulldown" style="min-width:300px;margin-top:0px;"></select><br>
+		</div>
+		<div id="sbh_new_collection" style="display:block;">
+		  <input id="sbh_id" type="text" class="span2 sbh-submit-field" placeholder="id"><br>
+		  <input id="sbh_version" type="text" class="span2 sbh-submit-field" placeholder="version"><br>
+		  <input id="sbh_name" type="text" class="span2 sbh-submit-field" placeholder="name"><br>
+		  <input id="sbh_description" type="text" class="span2 sbh-submit-field" placeholder="description"><br>
+		  <input id="sbh_citations" type="text" class="span2 sbh-submit-field" placeholder="citations (optional)"><br>
+		</div>
+		<div style="margin-top:10px;margin-bottom:10px;">
+		  <label for="sbh_overwrite" style="margin-right:20px">overwrite?</label>
+		  <input class="form-check-input" type="checkbox" style="transform: scale(2.0);" id="sbh_checkbox" title="Overwrite entries on SynBioHub?"><br/>
+		</div>
+		<input id="btnSBHSubmit" type="submit" value="Submit" class="btn btn-success"><br>
+		<div id="sbhSubmitError"></div>
+	      </div>
             </div>
 
         </div>

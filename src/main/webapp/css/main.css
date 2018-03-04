@@ -313,6 +313,34 @@ input[type=checkbox] {
     -moz-box-shadow: none;
 }
 
+input[type=radio] {
+    -webkit-appearance: radio;
+    -webkit-box-shadow: none;
+    -moz-box-shadow: none;
+}
+
 label.synbiohub-label {
     padding-right: 20px;
+}
+
+.alert-synbiohub {
+    margin-top: 5px;
+    width: 400px;
+}
+
+.sbh-login-field {
+    width: 200px;
+}
+
+.sbh-submit-field {
+    width: 300px;
+}
+
+#sbh-submit-url {
+    width: 300px;
+}
+
+#sbh-submission-style-selection {
+    margin-left: 20px;
+    margin-bottom: 20px;
 }

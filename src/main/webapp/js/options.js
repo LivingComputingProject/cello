@@ -34,6 +34,9 @@ function loadOptionsPageData() {
     if (opt.options_string == null || opt.options_string == undefined) {
         opt.options_string = "";
     }
+    if (opt.synbiohub_url == null || opt.synbiohub_url == undefined) {
+        opt.synbiohub_url = "https://synbiohub.utah.edu";
+    }
 
     getResultRoot();
     loadSettings();
@@ -224,9 +227,14 @@ $('#ucf_pulldown').on('change', function() {
 
 $('#synbiohub_checkbox').on('change', function() {
     saveOptions();
+    if ($('#synbiohub_checkbox').is(":checked")) {
+	$('#synbiohub_url').removeAttr("disabled", "disabled");
+    } else {
+	$('#synbiohub_url').attr("disabled", "disabled");
+    }
 });
 
-$('#synbiohub_checkbox').on('change', function() {
+$('#synbiohub_url').on('change', function() {
     saveOptions();
 });
 
@@ -384,6 +392,10 @@ function loadSettings() {
     $('#nP').val(opt.nP);
     $('#synbiohub_url').val(opt.synbiohub_url);
     $('#synbiohub_checkbox').prop("checked",opt.use_synbiohub);
+    if (opt.use_synbiohub) {
+	$('#synbiohub_url').removeAttr("disabled", "disabled");
+    }
+
 }
 
 function saveOptions()
