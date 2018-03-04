@@ -312,3 +312,7 @@ input[type=checkbox] {
     -webkit-box-shadow: none;
     -moz-box-shadow: none;
 }
+
+label.synbiohub-label {
+    padding-right: 20px;
+}

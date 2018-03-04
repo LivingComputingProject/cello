@@ -382,6 +382,8 @@ $( window ).resize(function() {
 function loadSettings() {
     $('#nA').val(opt.nA);
     $('#nP').val(opt.nP);
+    $('#synbiohub_url').val(opt.synbiohub_url);
+    $('#synbiohub_checkbox').prop("checked",opt.use_synbiohub);
 }
 
 function saveOptions()
