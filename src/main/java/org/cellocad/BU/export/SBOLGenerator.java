@@ -178,7 +178,8 @@ public class SBOLGenerator {
 												cd.getComponent(p.get_name()).getIdentity());
 				}
 			}
-			sbolDocument.createSequence(cd.getDisplayId() + "_sequence",sequence,Sequence.IUPAC_DNA);
+			Sequence s = sbolDocument.createSequence(cd.getDisplayId() + "_sequence",sequence,Sequence.IUPAC_DNA);
+			cd.addSequence(s);
 		}
 
 		return sbolDocument;
