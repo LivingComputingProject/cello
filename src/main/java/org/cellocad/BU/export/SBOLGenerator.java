@@ -82,7 +82,8 @@ public class SBOLGenerator {
 	public static SBOLDocument generateSBOLDocument(LogicCircuit lc, SynBioHubAdaptor sbhAdaptor)
 		throws SynBioHubException, SBOLValidationException {
 		Validate.notNull(lc,"LogicCircuit cannot be null.");
-		
+		Validate.notNull(sbhAdaptor,"SynBioHub adaptor cannot be null.");
+        
 		SBOLDocument sbolDocument = new SBOLDocument();
 		sbolDocument.setDefaultURIprefix("http://cellocad.org/");
 		
@@ -126,6 +127,24 @@ public class SBOLGenerator {
 			}
 		}
 
+        // make transcriptional units for input sen
+        Part pConst = sbhAdaptor.getPartLibrary().get_ALL_PARTS().get("pCONST");
+        sbolDocument.createCopy(pConst.getComponentDefinition());
+        Map<URI,URI> promoterMap = sbhAdaptor.getInputPromoterRepressorCDSMap();
+        for (Gate g : lc.get_input_gates()) {
+            ComponentDefinition promoterCd = g.get_regulable_promoter().getComponentDefinition();
+            URI u = promoterMap.get(promoterCd.getIdentity());
+            ComponentDefinition cd = sbhAdaptor.getCelloSBOL().getComponentDefinition(u);
+            sbolDocument.createCopy(cd);
+            List<Part> unit = new ArrayList<>();
+            Part p = sbhAdaptor.getPartLibrary().get_ALL_PARTS().get(cd.getName());
+            unit.add(pConst);
+            unit.add(p);
+            txnUnitsMap.put(cd.getName(),unit);
+        }
+
+        // create component definitions for transcriptional units
+        // add sequences, sequence annotations, sequence constraints, and components
 		for (String gate : txnUnitsMap.keySet()) {
 			String promoterPrefix = "";
 			for (Part p : txnUnitsMap.get(gate)) {

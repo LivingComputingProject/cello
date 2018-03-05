@@ -51,11 +51,13 @@ import org.sbolstandard.core2.Component;
 import org.sbolstandard.core2.ComponentDefinition;
 import org.sbolstandard.core2.SBOLDocument;
 import org.sbolstandard.core2.SequenceOntology;
+import org.sbolstandard.core2.SystemsBiologyOntology;
 import org.synbiohub.frontend.SynBioHubException;
 import org.synbiohub.frontend.SynBioHubFrontend;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -71,22 +73,25 @@ public class SynBioHubAdaptor {
     private PartLibrary partLibrary;
     private GateLibrary gateLibrary;
 
-    private SynBioHubFrontend sbh;
+    private SynBioHubFrontend synBioHubFrontend;
 
     public SynBioHubAdaptor(URL url) throws SynBioHubException, IOException {
         this.setPartLibrary(new PartLibrary());
         this.setGateLibrary(new GateLibrary(2,1));
 
-        sbh = new SynBioHubFrontend(url.toString());
+        this.setSynBioHubFrontend(new SynBioHubFrontend(url.toString()));
 
 		try {
 			URI u = new URL(url,"public/Cello_Parts/Cello_Parts_collection/1").toURI();
-			celloSBOL = sbh.getSBOL(u);
+            SBOLDocument sbol = this.getSynBioHubFrontend().getSBOL(u);
+            sbol.setDefaultURIprefix(url.toString());
+			this.setCelloSBOL(sbol);
 		} catch (URISyntaxException e) {
 			e.printStackTrace();
 		}
 
         createLibraries();
+        getInputPromoterRepressorCDSMap();
     }
 
     private void createLibraries() throws SynBioHubException, IOException {
@@ -94,7 +99,7 @@ public class SynBioHubAdaptor {
         Map<String,URI> cytometryAttachments = new HashMap<>();
         Map<String,URI> toxicityAttachments = new HashMap<>();
 
-        Set<ComponentDefinition> celloCD = celloSBOL.getComponentDefinitions();
+        Set<ComponentDefinition> celloCD = this.getCelloSBOL().getComponentDefinitions();
 
         for (ComponentDefinition cd : celloCD) {
             // i dont know why there would be more than one type per
@@ -350,11 +355,65 @@ public class SynBioHubAdaptor {
 		}
 	}
 
+    public Map<URI,URI> getInputPromoterRepressorCDSMap() {
+        Map<URI,URI> map = new HashMap<>();
+        
+        String query = "PREFIX dcterms: <http://purl.org/dc/terms/>\n"
+            + "PREFIX dc: <http://purl.org/dc/elements/1.1/>\n"
+            + "PREFIX sbh: <http://wiki.synbiohub.org/wiki/Terms/synbiohub#>\n"
+            + "PREFIX prov: <http://www.w3.org/ns/prov#>\n"
+            + "PREFIX sbol: <http://sbols.org/v2#>\n"
+            + "\n"
+            + "select ?promoter ?cds where {\n"
+            + "  ?promoter a sbol:ComponentDefinition .\n"
+            + "  ?promoter sbol:type <" + ComponentDefinition.DNA.toString() + "> .\n"
+            + "\n"
+            + "  ?cds a sbol:ComponentDefinition .\n"
+            + "  ?cds sbol:type <" + ComponentDefinition.DNA.toString() + "> .\n"
+            + "\n"
+            + "  ?repressor a sbol:ComponentDefinition .  \n"
+            + "  ?repressor sbol:type <" + ComponentDefinition.PROTEIN.toString() + "> .\n"
+            + "\n"
+            + "  ?repression a sbol:ModuleDefinition .\n"
+            + "  ?repression sbol:interaction ?repressionInt .\n"
+            + "  ?repressionInt sbol:type <" + SystemsBiologyOntology.INHIBITION.toString() + "> .\n"
+            + "  ?repression sbol:functionalComponent ?promoterComp .\n"
+            + "  ?promoterComp sbol:definition ?promoter .\n"
+            + "  ?repression sbol:functionalComponent ?repressorComp .\n"
+            + "  ?repressorComp sbol:definition ?repressor .\n"
+            + "\n"
+            + "  ?production a sbol:ModuleDefinition .\n"
+            + "  ?production sbol:interaction ?productionInt .\n"
+            + "  ?productionInt sbol:type <" + SystemsBiologyOntology.GENETIC_PRODUCTION.toString() + "> .\n"
+            + "  ?production sbol:functionalComponent ?cdsComp .\n"
+            + "  ?cdsComp sbol:definition ?cds .\n"
+            + "  ?production sbol:functionalComponent ?repressorComp2 .\n"
+            + "  ?repressorComp2 sbol:definition ?repressor .\n"
+            + "}\n";
+
+        String response = null;
+        try {
+            response = this.getSynBioHubFrontend().sparqlQuery(query);
+        } catch (SynBioHubException e) {
+            e.printStackTrace();
+        }
+        JsonParser parser = new JsonParser();
+        JsonArray jsonArray = parser.parse(response).getAsJsonObject()
+            .get("results").getAsJsonObject()
+            .get("bindings").getAsJsonArray();
+        for (JsonElement el : jsonArray) {
+            URI promoter = URI.create(el.getAsJsonObject().get("promoter").getAsJsonObject().get("value").getAsString());
+            URI cds = URI.create(el.getAsJsonObject().get("cds").getAsJsonObject().get("value").getAsString());
+            map.put(promoter,cds);
+        }
+        return map;
+    }
+
     /**
      * @return the SBOLDocument containing the SBOL of an arbitrary URI
      */
     public SBOLDocument getSBOL(URI uri) throws SynBioHubException {
-        return sbh.getSBOL(uri);
+        return synBioHubFrontend.getSBOL(uri);
     }
 
     /**
@@ -362,6 +421,13 @@ public class SynBioHubAdaptor {
      */
     public SBOLDocument getCelloSBOL() {
         return celloSBOL;
+    }
+
+    /**
+     * @param celloSBOL the SBOLDocument to set
+     */
+    private void setCelloSBOL(SBOLDocument celloSBOL) {
+        this.celloSBOL = celloSBOL;
     }
 
     /**
@@ -390,6 +456,20 @@ public class SynBioHubAdaptor {
      */
     private void setGateLibrary(GateLibrary gateLibrary) {
         this.gateLibrary = gateLibrary;
+    }
+
+    /**
+     * @return the synBioHubFrontend
+     */
+    public SynBioHubFrontend getSynBioHubFrontend() {
+        return synBioHubFrontend;
+    }
+
+    /**
+     * @param synBioHubFrontend the SynBioHubFrontend to set
+     */
+    private void setSynBioHubFrontend(SynBioHubFrontend synBioHubFrontend) {
+        this.synBioHubFrontend = synBioHubFrontend;
     }
 
 }
