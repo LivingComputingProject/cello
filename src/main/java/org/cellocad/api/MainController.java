@@ -322,7 +322,7 @@ public class MainController extends BaseController {
 			sbh.login(username,password);
 		} catch (SynBioHubException e) {
 			jsonResponse.put("status", "exception");
-			jsonResponse.put("result", getSynBioHubExceptionMessage(e));
+			jsonResponse.put("message", getSynBioHubExceptionMessage(e));
 			return jsonResponse;
 		}
 
