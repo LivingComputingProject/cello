@@ -180,7 +180,7 @@ public class SynBioHubAdaptor {
     }
 
     private void setGateCytometry(Attachment a, Gate gate) throws MalformedURLException, IOException {
-        URL url = new URL(a.getIdentity().toString() + "/download");
+		URL url = a.getSource().toURL();
         String cytometryJson = getURLContentsAsString(url);
 
         Integer nbins = 0;
@@ -234,7 +234,7 @@ public class SynBioHubAdaptor {
      * @return the toxicity table
      */
     private void setGateToxicityTable(Attachment a, Gate g) throws MalformedURLException, IOException {
-        URL url = new URL(a.getIdentity().toString() + "/download");
+        URL url = a.getSource().toURL();
         String toxicityJson = getURLContentsAsString(url);
 
         JsonParser parser = new JsonParser();
@@ -357,39 +357,79 @@ public class SynBioHubAdaptor {
 
     public Map<URI,URI> getInputPromoterRepressorCDSMap() {
         Map<URI,URI> map = new HashMap<>();
-        
-        String query = "PREFIX dcterms: <http://purl.org/dc/terms/>\n"
-            + "PREFIX dc: <http://purl.org/dc/elements/1.1/>\n"
-            + "PREFIX sbh: <http://wiki.synbiohub.org/wiki/Terms/synbiohub#>\n"
-            + "PREFIX prov: <http://www.w3.org/ns/prov#>\n"
-            + "PREFIX sbol: <http://sbols.org/v2#>\n"
-            + "\n"
-            + "select ?promoter ?cds where {\n"
-            + "  ?promoter a sbol:ComponentDefinition .\n"
-            + "  ?promoter sbol:type <" + ComponentDefinition.DNA.toString() + "> .\n"
-            + "\n"
-            + "  ?cds a sbol:ComponentDefinition .\n"
-            + "  ?cds sbol:type <" + ComponentDefinition.DNA.toString() + "> .\n"
-            + "\n"
-            + "  ?repressor a sbol:ComponentDefinition .  \n"
-            + "  ?repressor sbol:type <" + ComponentDefinition.PROTEIN.toString() + "> .\n"
-            + "\n"
-            + "  ?repression a sbol:ModuleDefinition .\n"
-            + "  ?repression sbol:interaction ?repressionInt .\n"
-            + "  ?repressionInt sbol:type <" + SystemsBiologyOntology.INHIBITION.toString() + "> .\n"
-            + "  ?repression sbol:functionalComponent ?promoterComp .\n"
-            + "  ?promoterComp sbol:definition ?promoter .\n"
-            + "  ?repression sbol:functionalComponent ?repressorComp .\n"
-            + "  ?repressorComp sbol:definition ?repressor .\n"
-            + "\n"
-            + "  ?production a sbol:ModuleDefinition .\n"
-            + "  ?production sbol:interaction ?productionInt .\n"
-            + "  ?productionInt sbol:type <" + SystemsBiologyOntology.GENETIC_PRODUCTION.toString() + "> .\n"
-            + "  ?production sbol:functionalComponent ?cdsComp .\n"
-            + "  ?cdsComp sbol:definition ?cds .\n"
-            + "  ?production sbol:functionalComponent ?repressorComp2 .\n"
-            + "  ?repressorComp2 sbol:definition ?repressor .\n"
-            + "}\n";
+
+		// query for input sensor to cds, e.g. pTet -> TetR
+		String query = "PREFIX dcterms: <http://purl.org/dc/terms/>\n"
+			+ "PREFIX dc: <http://purl.org/dc/elements/1.1/>\n"
+			+ "PREFIX sbh: <http://wiki.synbiohub.org/wiki/Terms/synbiohub#>\n"
+			+ "PREFIX prov: <http://www.w3.org/ns/prov#>\n"
+			+ "PREFIX sbol: <http://sbols.org/v2#>\n"
+			+ "\n"
+			+ "select ?promoter ?cds where\n"
+			+ "{\n"
+			+ "  {\n"
+			+ "    ?promoter a sbol:ComponentDefinition .\n"
+			+ "    ?promoter sbol:type <http://www.biopax.org/release/biopax-level3.owl#DnaRegion> .\n"
+			+ "\n"
+			+ "    ?cds a sbol:ComponentDefinition .\n"
+			+ "    ?cds sbol:type <http://www.biopax.org/release/biopax-level3.owl#DnaRegion> .\n"
+			+ "\n"
+			+ "    ?repressor a sbol:ComponentDefinition .  \n"
+			+ "    ?repressor sbol:type <http://www.biopax.org/release/biopax-level3.owl#Protein> .\n"
+			+ "\n"
+			+ "    ?repression a sbol:ModuleDefinition .\n"
+			+ "    ?repression sbol:interaction ?repressionInt .\n"
+			+ "    ?repressionInt sbol:type <http://identifiers.org/biomodels.sbo/SBO:0000169> .\n"
+			+ "    ?repression sbol:functionalComponent ?promoterComp .\n"
+			+ "    ?promoterComp sbol:definition ?promoter .\n"
+			+ "    ?repression sbol:functionalComponent ?repressorComp .\n"
+			+ "    ?repressorComp sbol:definition ?repressor .\n"
+			+ "\n"
+			+ "    ?production a sbol:ModuleDefinition .\n"
+			+ "    ?production sbol:interaction ?productionInt .\n"
+			+ "    ?productionInt sbol:type <http://identifiers.org/biomodels.sbo/SBO:0000589> .\n"
+			+ "    ?production sbol:functionalComponent ?cdsComp .\n"
+			+ "    ?cdsComp sbol:definition ?cds .\n"
+			+ "    ?production sbol:functionalComponent ?repressorComp2 .\n"
+			+ "    ?repressorComp2 sbol:definition ?repressor .\n"
+			+ "  } union {\n"
+			+ "    ?promoter a sbol:ComponentDefinition .\n"
+			+ "    ?promoter sbol:type <http://www.biopax.org/release/biopax-level3.owl#DnaRegion> .\n"
+			+ "\n"
+			+ "    ?cds a sbol:ComponentDefinition .\n"
+			+ "    ?cds sbol:type <http://www.biopax.org/release/biopax-level3.owl#DnaRegion> .\n"
+			+ "\n"
+			+ "    ?activator a sbol:ComponentDefinition .  \n"
+			+ "    ?activator sbol:type <http://www.biopax.org/release/biopax-level3.owl#Complex> .\n"
+			+ "\n"
+			+ "    ?reactant a sbol:ComponentDefinition .  \n"
+			+ "    ?reactant sbol:type <http://www.biopax.org/release/biopax-level3.owl#Protein> .\n"
+			+ "\n"
+			+ "    ?activation a sbol:ModuleDefinition .\n"
+			+ "    ?activation sbol:interaction ?activationInt .\n"
+			+ "    ?activationInt sbol:type <http://identifiers.org/biomodels.sbo/SBO:0000170> .\n"
+			+ "    ?activation sbol:functionalComponent ?promoterComp .\n"
+			+ "    ?promoterComp sbol:definition ?promoter .\n"
+			+ "    ?activation sbol:functionalComponent ?activatorComp .\n"
+			+ "    ?activatorComp sbol:definition ?activator .\n"
+			+ "\n"
+			+ "    ?formation a sbol:ModuleDefinition .\n"
+			+ "    ?formation sbol:interaction ?formationInt .\n"
+			+ "    ?formationInt sbol:type <http://identifiers.org/biomodels.sbo/SBO:0000177> .\n"
+			+ "    ?formation sbol:functionalComponent ?activatorComp2 .\n"
+			+ "    ?activatorComp2 sbol:definition ?activator .\n"
+			+ "    ?formation sbol:functionalComponent ?reactantComp .\n"
+			+ "    ?reactantComp sbol:definition ?reactant .\n"
+			+ "\n"
+			+ "    ?production a sbol:ModuleDefinition .\n"
+			+ "    ?production sbol:interaction ?productionInt .\n"
+			+ "    ?productionInt sbol:type <http://identifiers.org/biomodels.sbo/SBO:0000589> .\n"
+			+ "    ?production sbol:functionalComponent ?cdsComp .\n"
+			+ "    ?cdsComp sbol:definition ?cds .\n"
+			+ "    ?production sbol:functionalComponent ?reactantComp2 .\n"
+			+ "    ?reactantComp2 sbol:definition ?reactant .\n"
+			+ "  }\n"
+			+ "}\n";
 
         String response = null;
         try {
